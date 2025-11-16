@@ -441,16 +441,30 @@ function submitAnswer() {
         return;
     }
 
-    room.answers = room.answers || {};
-    room.answers[String(me.id)] = {
-        answer: Number(myAnswer),
-        time: Date.now()
-    };
-
     $("#answer").prop("disabled", true);
     $("#submitBtn").prop("disabled", true);
 
-    saveRoom(checkAllAnswered);
+    // ✅ جلب أحدث نسخة من الغرفة أولاً
+    $.get(ROOMS_URL + "/" + roomId, function(latestRoom) {
+        latestRoom.answers = latestRoom.answers || {};
+        latestRoom.answers[String(me.id)] = {
+            answer: Number(myAnswer),
+            time: Date.now()
+        };
+
+        // ✅ حفظ على السيرفر
+        $.ajax({
+            url: ROOMS_URL + "/" + roomId,
+            method: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(latestRoom),
+            success: function() {
+                // ✅ تحديث النسخة المحلية
+                room = latestRoom;
+                checkAllAnswered();
+            }
+        });
+    });
 }
 
 // =========================================
@@ -458,19 +472,21 @@ function submitAnswer() {
 // =========================================
 function checkAllAnswered() {
     setTimeout(() => {
+        // ✅ جلب أحدث نسخة للتأكد
         $.get(ROOMS_URL + "/" + roomId, function(data) {
             room = data;
             
             if (!room.answers) return;
             
-            let allAnswered = room.players.every(p => room.answers[p.id]);
+            // ✅ تحقق من جميع اللاعبين
+            let allAnswered = room.players.every(p => room.answers[String(p.id)]);
             
             if (allAnswered && room.creatorId === String(me.id)) {
                 isCalculating = true; // ✅ إيقاف التحديث التلقائي
                 calculateScores();
             }
         });
-    }, 1000);
+    }, 1500); // ✅ زيادة الوقت للتأكد من حفظ الجميع
 }
 
 // =========================================
