@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>🎮 غرفة الحساب الجماعية</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .game-box {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #2575fc;
+            font-size: 28px;
+        }
+
+        .room-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .round-indicator {
+            background: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            margin: 20px 0;
+        }
+
+        .leaderboard-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .player-row:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-row.me {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            border: 2px solid #667eea;
+        }
+
+        .player-rank {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .player-rank.gold {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #8b6914;
+        }
+
+        .player-rank.silver {
+            background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
+            color: #4a4a4a;
+        }
+
+        .player-rank.bronze {
+            background: linear-gradient(135deg, #cd7f32, #e3a857);
+            color: #5c3d1f;
+        }
+
+        .player-rank.normal {
+            background: #dee2e6;
+            color: #333;
+        }
+
+        .player-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .player-score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2575fc;
+            margin-left: 10px;
+        }
+
+        .player-status {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-right: 10px;
+        }
+
+        .player-status.waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .player-status.answered {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        /* Question */
+        .question {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 30px 0;
+            color: #333;
+            text-align: center;
+            min-height: 60px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        input:focus {
+            border-color: #2575fc;
+            box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1c5ed6;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+
+        button.start {
+            background: #28a745;
+        }
+
+        .waiting-message {
+            text-align: center;
+            padding: 40px;
+            background: #fff3cd;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .winner-box {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .winner-box.win {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .winner-box.normal {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="game-box">
+    <h2>🎮 غرفة الحساب الجماعية</h2>
+
+    <div class="room-info">
+        <h3 id="roomName">غرفة اللعب</h3>
+        <div class="round-indicator" id="roundIndicator">الجولة 0 / 5</div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard">
+        <div class="leaderboard-title">🏆 الترتيب الحالي</div>
+        <div id="leaderboardList"></div>
+    </div>
+
+    <!-- Game Area -->
+    <div id="gameArea" style="display:none;">
+        <div class="question" id="questionBox">...</div>
+        <input type="number" id="answer" placeholder="اكتب إجابتك هنا">
+        <button id="submitBtn" onclick="submitAnswer()">إرسال الإجابة</button>
+        <div id="winnerBox" class="winner-box" style="display:none;"></div>
+    </div>
+
+    <!-- Waiting Area -->
+    <div id="waitingArea" class="waiting-message">
+        <h3>⏳ في انتظار المنشئ لبدء اللعبة...</h3>
+        <button id="startBtn" class="start" onclick="startGame()" style="display:none; max-width:300px; margin:20px auto;">
+            🚀 بدء اللعبة
+        </button>
+    </div>
+
+    <button class="secondary" onclick="location.href='rooms.html'">رجوع للغرف</button>
+</div>
+
+<script>
+
+const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+const ROOMS_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let params = new URLSearchParams(location.search);
+let roomId = params.get("room");
+
+let room = null;
+let currentQuestion = null;
+let isCalculating = false; // ✅ متغير جديد لمنع التحديث أثناء الحساب
+
+// =========================================
+// 🔥 توليد سؤال
+// =========================================
+function generateQuestion() {
+    let a = Math.floor(Math.random() * 20) + 1;
+    let b = Math.floor(Math.random() * 20) + 1;
+    let ops = ["+", "-", "*"];
+    let op = ops[Math.floor(Math.random() * 3)];
+    let question = `${a} ${op} ${b}`;
+    let answer = eval(question);
+    return { question, answer };
+}
+
+// =========================================
+// 🔥 تحميل الغرفة
+// =========================================
+function loadRoom() {
+    $.get(ROOMS_URL + "/" + roomId, function(data) {
+        room = data;
+        
+        // ✅ تنظيف الإجابات - احذف المفاتيح اللي مش IDs
+        if (room.answers && typeof room.answers === 'object') {
+            let playerIds = room.players.map(p => String(p.id));
+            let cleanAnswers = {};
+            
+            Object.keys(room.answers).forEach(key => {
+                if (playerIds.includes(String(key))) {
+                    cleanAnswers[String(key)] = room.answers[key];
+                }
+            });
+            
+            room.answers = cleanAnswers;
+        }
+        
+        $("#roomName").text(room.name);
+        $("#roundIndicator").text(`الجولة ${room.currentRound || 0} / ${room.maxRounds}`);
+
+        // ترتيب اللاعبين حسب النقاط
+        room.players.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+        displayLeaderboard();
+
+        // إظهار زر البدء للمنشئ فقط
+        if (room.status === 'waiting' && room.creatorId === String(me.id)) {
+            $("#startBtn").show();
+        }
+
+        if (room.status === 'waiting') {
+            $("#waitingArea").show();
+            $("#gameArea").hide();
+        } else if (room.status === 'playing') {
+            $("#waitingArea").hide();
+            $("#gameArea").show();
+            
+            if (!room.currentQuestion) {
+                // المنشئ يولد السؤال
+                if (room.creatorId === String(me.id)) {
+                    let q = generateQuestion();
+                    room.currentQuestion = q;
+                    room.answers = {};
+                    saveRoom();
+                }
+            } else {
+                displayQuestion();
+            }
+        } else if (room.status === 'finished') {
+            location.href = "room-results.html?room=" + roomId;
+        }
+    });
+}
+
+// =========================================
+// 🔥 عرض الترتيب
+// =========================================
+function displayLeaderboard() {
+    let container = $("#leaderboardList").html("");
+    
+    room.players.forEach((player, index) => {
+        let rank = index + 1;
+        let rankClass = 'normal';
+        let trophy = '';
+
+        if (rank === 1) {
+            rankClass = 'gold';
+            trophy = '👑';
+        } else if (rank === 2) {
+            rankClass = 'silver';
+            trophy = '🥈';
+        } else if (rank === 3) {
+            rankClass = 'bronze';
+            trophy = '🥉';
+        }
+
+        let isMe = player.id === String(me.id);
+        let rowClass = isMe ? 'player-row me' : 'player-row';
+
+        let status = '';
+        if (room.status === 'playing' && room.answers) {
+            if (room.answers[player.id]) {
+                status = '<span class="player-status answered">✅ أجاب</span>';
+            } else {
+                status = '<span class="player-status waiting">⏳ ينتظر</span>';
+            }
+        }
+
+        container.append(`
+            <div class="${rowClass}">
+                <div class="player-rank ${rankClass}">${trophy || rank}</div>
+                <div class="player-name">${player.username} ${isMe ? '(أنت)' : ''}</div>
+                ${status}
+                <div class="player-score">${player.score || 0}</div>
+            </div>
+        `);
+    });
+}
+
+// =========================================
+// 🔥 بدء اللعبة
+// =========================================
+function startGame() {
+    if (!confirm("هل تريد بدء اللعبة؟")) return;
+
+    room.status = 'playing';
+    room.currentRound = 1;
+    
+    let q = generateQuestion();
+    room.currentQuestion = q;
+    room.answers = {};
+
+    saveRoom();
+}
+
+// =========================================
+// 🔥 عرض السؤال
+// =========================================
+function displayQuestion() {
+    if (!room.currentQuestion) return;
+    
+    $("#questionBox").text(room.currentQuestion.question);
+
+    if (room.answers && room.answers[String(me.id)]) {
+        $("#answer").prop("disabled", true);
+        $("#submitBtn").prop("disabled", true);
+    } else {
+        $("#answer").prop("disabled", false);
+        $("#submitBtn").prop("disabled", false);
+    }
+}
+
+// =========================================
+// 🔥 إرسال الإجابة
+// =========================================
+function submitAnswer() {
+    let myAnswer = $("#answer").val().trim();
+    if (!myAnswer) {
+        alert("الرجاء كتابة إجابة!");
+        return;
+    }
+
+    room.answers = room.answers || {};
+    room.answers[String(me.id)] = {
+        answer: Number(myAnswer),
+        time: Date.now()
+    };
+
+    $("#answer").prop("disabled", true);
+    $("#submitBtn").prop("disabled", true);
+
+    saveRoom(checkAllAnswered);
+}
+
+// =========================================
+// 🔥 فحص إذا الجميع أجاب
+// =========================================
+function checkAllAnswered() {
+    setTimeout(() => {
+        $.get(ROOMS_URL + "/" + roomId, function(data) {
+            room = data;
+            
+            if (!room.answers) return;
+            
+            let allAnswered = room.players.every(p => room.answers[p.id]);
+            
+            if (allAnswered && room.creatorId === String(me.id)) {
+                isCalculating = true; // ✅ إيقاف التحديث التلقائي
+                calculateScores();
+            }
+        });
+    }, 1000);
+}
+
+// =========================================
+// 🔥 حساب النقاط
+// =========================================
+function calculateScores() {
+    let correctAnswer = room.currentQuestion.answer;
+    let correctPlayers = [];
+    let fastestTime = Infinity;
+    let fastestPlayer = null;
+
+    // حساب من أجاب صح
+    room.players.forEach(player => {
+        let playerAnswer = room.answers[player.id];
+        if (playerAnswer && playerAnswer.answer === correctAnswer) {
+            correctPlayers.push(player.id);
+            player.score = (player.score || 0) + 1;
+            
+            // تحديد الأسرع
+            if (playerAnswer.time < fastestTime) {
+                fastestTime = playerAnswer.time;
+                fastestPlayer = player.id;
+            }
+        }
+    });
+
+    // نقطة إضافية للأسرع
+    if (fastestPlayer && correctPlayers.length > 1) {
+        let player = room.players.find(p => p.id === fastestPlayer);
+        if (player) player.score += 1;
+    }
+
+    // التالي
+    if (room.currentRound >= room.maxRounds) {
+        room.status = 'finished';
+        room.currentQuestion = null;
+        room.answers = {};
+    } else {
+        room.currentRound += 1;
+        room.currentQuestion = null;
+        room.answers = {};
+    }
+
+    // ✅ حفظ أولاً
+    saveRoom(() => {
+        if (room.status === 'finished') {
+            location.href = "room-results.html?room=" + roomId;
+        } else {
+            // ✅ انتظر قليلاً ثم ولّد سؤال جديد
+            setTimeout(() => {
+                $.get(ROOMS_URL + "/" + roomId, function(updatedRoom) {
+                    room = updatedRoom;
+                    
+                    // المنشئ يولد السؤال الجديد
+                    if (!room.currentQuestion && room.creatorId === String(me.id)) {
+                        let q = generateQuestion();
+                        room.currentQuestion = q;
+                        room.answers = {};
+                        saveRoom(() => {
+                            isCalculating = false; // ✅ إعادة تشغيل التحديث التلقائي
+                        });
+                    } else {
+                        isCalculating = false; // ✅ إعادة تشغيل التحديث التلقائي
+                    }
+                });
+            }, 1500);
+        }
+    });
+}
+
+// =========================================
+// 🔥 حفظ الغرفة
+// =========================================
+function saveRoom(callback) {
+    $.ajax({
+        url: ROOMS_URL + "/" + roomId,
+        method: "PUT",
+        contentType: "application/json",
+        data: JSON.stringify(room),
+        success: function() {
+            if (callback) callback();
+        }
+    });
+}
+
+// ==============================
+// 🎯 تحديث تلقائي
+// ==============================
+setInterval(function() {
+    if (!room || room.status !== 'finished') {
+        if (!isCalculating) { // ✅ فقط إذا مش بنحسب
+            loadRoom();
+        }
+    }
+}, 2000);
+
+loadRoom();
+
+</script>
+
+</body>
+</html>

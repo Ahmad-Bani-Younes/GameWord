@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>🎯 غرفة الكلمات الجماعية</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+body{background:linear-gradient(135deg,#f093fb,#f5576c);min-height:100vh;padding:20px;font-family:'Segoe UI',sans-serif}
+.game-box{max-width:900px;margin:0 auto;background:#fff;padding:30px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+h2{text-align:center;color:#f5576c;font-size:28px;margin-bottom:10px}
+.room-info{text-align:center;margin-bottom:20px;padding:15px;background:#f8f9fa;border-radius:8px}
+.round-indicator{background:#6c757d;color:#fff;padding:8px 15px;border-radius:20px;font-size:14px;font-weight:600;display:inline-block;margin:10px 0}
+.leaderboard{margin:20px 0}
+.leaderboard-title{font-size:20px;font-weight:700;margin-bottom:15px;text-align:center}
+.player-row{display:flex;align-items:center;padding:12px;margin-bottom:10px;background:#f8f9fa;border-radius:10px;transition:all .3s}
+.player-row:hover{transform:translateX(-5px)}
+.player-row.me{background:linear-gradient(135deg,#f093fb15,#f5576c15);border:2px solid #f5576c}
+.player-rank{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;margin-left:15px}
+.player-rank.gold{background:linear-gradient(135deg,#ffd700,#ffed4e);color:#8b6914}
+.player-rank.silver{background:linear-gradient(135deg,#c0c0c0,#e8e8e8);color:#4a4a4a}
+.player-rank.bronze{background:linear-gradient(135deg,#cd7f32,#e3a857);color:#5c3d1f}
+.player-rank.normal{background:#dee2e6;color:#333}
+.player-name{flex:1;font-weight:600;font-size:16px}
+.player-score{font-size:24px;font-weight:700;color:#f5576c}
+.player-status{font-size:12px;padding:4px 10px;border-radius:12px;margin-right:10px}
+.player-status.waiting{background:#fff3cd;color:#856404}
+.player-status.answered{background:#d4edda;color:#155724}
+.challenge-box{background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;border-radius:15px;margin:20px 0;color:#fff;text-align:center}
+.letter{font-size:80px;font-weight:700;margin:10px 0}
+.category{font-size:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:20px 0}
+.input-group label{display:block;margin-bottom:5px;font-weight:600}
+input[type=text]{width:100%;padding:12px;font-size:16px;border:2px solid #ddd;border-radius:8px}
+input:focus{border-color:#f5576c;outline:0}
+input:disabled{background:#f0f0f0}
+button{width:100%;padding:15px;background:#f5576c;color:#fff;border:0;border-radius:8px;font-size:18px;font-weight:600;cursor:pointer;margin-top:15px}
+button:hover:not(:disabled){background:#e04658}
+button:disabled{background:#ccc;cursor:not-allowed}
+button.secondary{background:#6c757d}
+button.start{background:#28a745;max-width:300px;margin:20px auto;display:block}
+.waiting-message{text-align:center;padding:40px;background:#fff3cd;border-radius:10px;margin:20px 0}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="game-box">
+<h2>🎯 غرفة الكلمات الجماعية</h2>
+<div class="room-info">
+<h3 id="roomName">غرفة اللعب</h3>
+<div class="round-indicator" id="roundIndicator">الجولة 0 / 5</div>
+</div>
+<div class="leaderboard">
+<div class="leaderboard-title">🏆 الترتيب الحالي</div>
+<div id="leaderboardList"></div>
+</div>
+<div id="gameArea" style="display:none">
+<div class="challenge-box">
+<div class="letter" id="letterBox">؟</div>
+<div class="category" id="categoryBox">انتظر...</div>
+</div>
+<div class="form-grid">
+<div class="input-group"><label>👦 اسم ولد</label><input type="text" id="boyName" placeholder="مثال: أحمد"></div>
+<div class="input-group"><label>👧 اسم بنت</label><input type="text" id="girlName" placeholder="مثال: آية"></div>
+<div class="input-group"><label>🦁 حيوان</label><input type="text" id="animal" placeholder="مثال: أسد"></div>
+<div class="input-group"><label>🌳 نبات</label><input type="text" id="plant" placeholder="مثال: أرز"></div>
+<div class="input-group"><label>🏺 جماد</label><input type="text" id="object" placeholder="مثال: إبرة"></div>
+<div class="input-group"><label>🌍 بلاد</label><input type="text" id="country" placeholder="مثال: الأردن"></div>
+</div>
+<button id="submitBtn" onclick="submitAnswers()">إرسال الإجابات</button>
+</div>
+<div id="waitingArea" class="waiting-message">
+<h3>⏳ في انتظار المنشئ لبدء اللعبة...</h3>
+<button id="startBtn" class="start" onclick="startGame()" style="display:none">🚀 بدء اللعبة</button>
+</div>
+<button class="secondary" onclick="location.href='rooms.html'">رجوع للغرف</button>
+</div>
+<script>
+const ROOMS_URL="https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
+const LETTERS=['ا','ب','ت','ج','ح','خ','د','ر','ز','س','ش','ص','ع','ف','ق','ك','ل','م','ن','ه','و','ي'];
+const VALID={'ا':{boyNames:['أحمد','أمير','أيمن','إبراهيم'],girlNames:['آية','أمل','إيمان','أسماء'],animals:['أسد','أرنب'],plants:['أرز','أناناس'],objects:['إبرة','أريكة'],countries:['الأردن','الإمارات','أمريكا']},'م':{boyNames:['محمد','محمود','مصطفى','معاذ'],girlNames:['مريم','ملك','منى','ميرا'],animals:['ماعز','مها'],plants:['موز','مانجو'],objects:['مفتاح','مكتب'],countries:['مصر','المغرب']},'س':{boyNames:['سامي','سعيد','سالم'],girlNames:['سارة','سلمى','سناء'],animals:['سمكة','سلحفاة'],plants:['سبانخ'],objects:['سرير','سيارة','ساعة'],countries:['سوريا','السعودية']}};
+let me=JSON.parse(localStorage.getItem("user"));
+if(!me)location.href="login.html";
+let roomId=new URLSearchParams(location.search).get("room"),room=null;
+function generateChallenge(){let l=LETTERS[Math.floor(Math.random()*LETTERS.length)];return{letter:l,category:`اكتب كلمات تبدأ بحرف: ${l}`}}
+function checkAnswer(l,a,t){if(!a||!a.trim())return null;a=a.trim();if(!a.startsWith(l))return false;if(VALID[l]){let v=VALID[l][t]||[];return v.includes(a)}return false}
+function loadRoom(){$.get(ROOMS_URL+"/"+roomId,d=>{room=d;$("#roomName").text(room.name);$("#roundIndicator").text(`الجولة ${room.currentRound||0} / ${room.maxRounds}`);room.players.sort((a,b)=>(b.score||0)-(a.score||0));displayLeaderboard();if(room.status==='waiting'&&room.creatorId===String(me.id))$("#startBtn").show();if(room.status==='waiting'){$("#waitingArea").show();$("#gameArea").hide()}else if(room.status==='playing'){$("#waitingArea").hide();$("#gameArea").show();if(!room.currentQuestion){if(room.creatorId===String(me.id)){let c=generateChallenge();room.currentQuestion=c;room.answers={};saveRoom()}}else displayChallenge()}else if(room.status==='finished')location.href="room-results.html?room="+roomId})}
+function displayLeaderboard(){let c=$("#leaderboardList").html("");room.players.forEach((p,i)=>{let r=i+1,rc='normal',t='';if(r===1){rc='gold';t='👑'}else if(r===2){rc='silver';t='🥈'}else if(r===3){rc='bronze';t='🥉'}let isMe=p.id===String(me.id),row=isMe?'player-row me':'player-row',st='';if(room.status==='playing'&&room.answers){if(room.answers[p.id])st='<span class="player-status answered">✅ أجاب</span>';else st='<span class="player-status waiting">⏳ ينتظر</span>'}c.append(`<div class="${row}"><div class="player-rank ${rc}">${t||r}</div><div class="player-name">${p.username}${isMe?' (أنت)':''}</div>${st}<div class="player-score">${p.score||0}</div></div>`)})}
+function startGame(){if(!confirm("هل تريد بدء اللعبة؟"))return;room.status='playing';room.currentRound=1;let c=generateChallenge();room.currentQuestion=c;room.answers={};saveRoom()}
+function displayChallenge(){if(!room.currentQuestion)return;$("#letterBox").text(room.currentQuestion.letter);$("#categoryBox").text(room.currentQuestion.category);if(room.answers&&room.answers[String(me.id)]){$("input").prop("disabled",true);$("#submitBtn").prop("disabled",true)}else{$("input").prop("disabled",false);$("#submitBtn").prop("disabled",false)}}
+function submitAnswers(){let a={boyName:$("#boyName").val().trim(),girlName:$("#girlName").val().trim(),animal:$("#animal").val().trim(),plant:$("#plant").val().trim(),object:$("#object").val().trim(),country:$("#country").val().trim()};room.answers=room.answers||{};room.answers[String(me.id)]={answers:a,time:Date.now()};$("input").prop("disabled",true);$("#submitBtn").prop("disabled",true);saveRoom(checkAllAnswered)}
+function checkAllAnswered(){setTimeout(()=>{$.get(ROOMS_URL+"/"+roomId,d=>{room=d;if(!room.answers)return;let all=room.players.every(p=>room.answers[p.id]);if(all&&room.creatorId===String(me.id))calculateScores()})},1000)}
+function calculateScores(){let l=room.currentQuestion.letter,cats=[{key:'boyName',type:'boyNames'},{key:'girlName',type:'girlNames'},{key:'animal',type:'animals'},{key:'plant',type:'plants'},{key:'object',type:'objects'},{key:'country',type:'countries'}],scores={},fastest={};room.players.forEach(p=>{let pd=room.answers[p.id];if(!pd)return;let sc=0;cats.forEach(c=>{let ans=pd.answers[c.key],cor=checkAnswer(l,ans,c.type);if(cor===true){sc++;if(!fastest[c.key]||pd.time<fastest[c.key].time)fastest[c.key]={playerId:p.id,time:pd.time}}});scores[p.id]=sc});Object.values(fastest).forEach(f=>{if(f&&scores[f.playerId]>0)scores[f.playerId]+=1});room.players.forEach(p=>p.score=(p.score||0)+(scores[p.id]||0));if(room.currentRound>=room.maxRounds){room.status='finished';room.currentQuestion=null;room.answers={}}else{room.currentRound+=1;room.currentQuestion=null;room.answers={}}saveRoom(()=>{if(room.status==='finished')location.href="room-results.html?room="+roomId;else{setTimeout(()=>{$.get(ROOMS_URL+"/"+roomId,ur=>{room=ur;if(!room.currentQuestion&&room.creatorId===String(me.id)){let c=generateChallenge();room.currentQuestion=c;room.answers={};saveRoom()}})},1000)}})}
+function saveRoom(cb){$.ajax({url:ROOMS_URL+"/"+roomId,method:"PUT",contentType:"application/json",data:JSON.stringify(room),success:()=>{if(cb)cb()}})}
+setInterval(()=>{if(!room||room.status!=='finished')loadRoom()},2000);
+loadRoom();
+</script>
+</body>
+</html>

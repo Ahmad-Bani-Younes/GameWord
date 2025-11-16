@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>بروفايل صديق</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Navigation */
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        .page-title {
+            color: var(--dark);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            margin-bottom: 30px;
+            transition: var(--transition);
+        }
+
+        .profile-section:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        .avatar-large {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid white;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .avatar-large:hover {
+            transform: scale(1.05);
+        }
+
+        .profile-info h2 {
+            color: var(--dark);
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .profile-info .email {
+            color: var(--gray);
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .friends-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            box-shadow: 0 4px 15px rgba(247, 37, 133, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Friends Section */
+        .friends-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .friends-section:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section-header h3 {
+            color: var(--dark);
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .section-header i {
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        .friends-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .friend-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+
+        .friend-card:hover {
+            background: white;
+            border-color: #e9ecef;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .avatar-small {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .friend-info h4 {
+            color: var(--dark);
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .friend-info p {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 15px;
+            color: #dee2e6;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--gray);
+            font-size: 14px;
+            padding: 20px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header-nav {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .profile-section {
+                padding: 30px 20px;
+            }
+            
+            .avatar-large {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .friends-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .profile-section {
+                padding: 25px 15px;
+            }
+            
+            .friends-section {
+                padding: 20px 15px;
+            }
+            
+            .avatar-large {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .profile-info h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Navigation -->
+        <div class="header-nav">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-right"></i>
+                العودة للرئيسية
+            </a>
+            <h1 class="page-title">بروفايل الصديق</h1>
+        </div>
+
+        <!-- Profile Section -->
+        <div id="profile"></div>
+
+        <!-- Friends Section -->
+        <div class="friends-section">
+            <div class="section-header">
+                <i class="fas fa-users"></i>
+                <h3>أصدقاؤه</h3>
+            </div>
+            <div id="friendFriends"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            © 2023 تطبيق التواصل الاجتماعي. جميع الحقوق محفوظة.
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+
+        let params = new URLSearchParams(window.location.search);
+        let friendId = params.get("id");
+
+        // لو ما في id ارجع للصفحة الرئيسية
+        if (!friendId) window.location.href = "index.html";
+
+        let me = JSON.parse(localStorage.getItem("user"));
+
+        function loadFriendProfile() {
+            $.get(API_URL + "/" + friendId, function(friend) {
+
+                // ===========================
+                // 1) بيانات البروفايل الأساسية
+                // ===========================
+                $("#profile").html(`
+                    <div class="profile-section">
+                        <img class="avatar-large" src="${friend.avatar || 'default.png'}" alt="صورة ${friend.username}">
+                        
+                        <div class="profile-info">
+                            <h2>${friend.username}</h2>
+                            <p class="email">${friend.email}</p>
+                            
+                            <div class="friends-count">
+                                <i class="fas fa-user-friends"></i>
+                                عدد أصدقائه: ${ (friend.friends || []).length }
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <button class="btn btn-danger" onclick="removeFriend('${friend.id}')">
+                                    <i class="fas fa-user-minus"></i>
+                                    إزالة من أصدقائي
+                                </button>
+                                <button class="btn btn-danger" onclick="openChat('${friend.id}')">
+                                    <i class="fas fa-user-minus"></i>
+                                   مراسله
+                                </button>
+                               
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+                loadHisFriends(friend);
+            });
+        }
+
+        // ==========================
+        // 2) عرض أصدقاء الشخص
+        // ==========================
+        function loadHisFriends(friend) {
+            $.get(API_URL, function(users) {
+
+                let container = $("#friendFriends");
+                container.html("");
+
+                if (!friend.friends || friend.friends.length === 0) {
+                    container.html(`
+                        <div class="empty-state">
+                            <i class="fas fa-user-friends"></i>
+                            <p>لا يوجد أصدقاء</p>
+                        </div>
+                    `);
+                    return;
+                }
+
+                let friendsGrid = document.createElement('div');
+                friendsGrid.className = 'friends-grid';
+
+                friend.friends.forEach(fid => {
+                    let fr = users.find(u => u.id === String(fid));
+                    if (!fr) return;
+
+                    friendsGrid.innerHTML += `
+                        <div class="friend-card">
+                            <img class="avatar-small" src="${fr.avatar || 'default.png'}" alt="${fr.username}">
+                            <div class="friend-info">
+                                <h4>${fr.username}</h4>
+                                <p>${fr.email}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.append(friendsGrid);
+            });
+        }
+
+        // ==========================
+        // 3) إزالة صديق
+        // ==========================
+
+
+        function openChat(fid) {
+    window.location.href = "chat.html?to=" + fid;
+}
+
+
+
+        function removeFriend(fid) {
+            if (!confirm('هل أنت متأكد من أنك تريد إزالة هذا الصديق؟')) {
+                return;
+            }
+
+            let updatedFriends = me.friends.filter(id => id !== fid);
+
+            $.ajax({
+                url: API_URL + "/" + me.id,
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    ...me,
+                    friends: updatedFriends
+                }),
+                success: function () {
+
+                    // إزالة نفسي من عنده
+                    $.get(API_URL + "/" + fid, function(friendUser) {
+
+                        let updatedHisFriends = friendUser.friends.filter(id => id !== me.id);
+
+                        $.ajax({
+                            url: API_URL + "/" + fid,
+                            method: "PUT",
+                            contentType: "application/json",
+                            data: JSON.stringify({
+                                ...friendUser,
+                                friends: updatedHisFriends
+                            }),
+                            success: function () {
+                                alert("تم إزالته من أصدقائك بنجاح");
+                                window.location.href = "index.html";
+                            },
+                            error: function() {
+                                alert("حدث خطأ أثناء إزالة الصديق");
+                            }
+                        });
+
+                    });
+                },
+                error: function() {
+                    alert("حدث خطأ أثناء إزالة الصديق");
+                }
+            });
+        }
+
+        // تحميل البيانات
+        loadFriendProfile();
+    </script>
+</body>
+</html>

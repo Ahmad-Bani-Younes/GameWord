@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>🏆 لوحة المتصدرين</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --gold: #ffd700;
+            --silver: #c0c0c0;
+            --bronze: #cd7f32;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 36px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            color: var(--gray);
+            font-size: 16px;
+        }
+
+        /* My Stats Card */
+        .my-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .leaderboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .leaderboard-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* Player Card */
+        .player-card {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .player-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+
+        .player-card.me {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 2px solid var(--primary);
+        }
+
+        .rank {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .rank.gold {
+            background: linear-gradient(135deg, var(--gold), #ffed4e);
+            color: #8b6914;
+            box-shadow: 0 3px 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .rank.silver {
+            background: linear-gradient(135deg, var(--silver), #e8e8e8);
+            color: #4a4a4a;
+            box-shadow: 0 3px 10px rgba(192, 192, 192, 0.4);
+        }
+
+        .rank.bronze {
+            background: linear-gradient(135deg, var(--bronze), #e3a857);
+            color: #5c3d1f;
+            box-shadow: 0 3px 10px rgba(205, 127, 50, 0.4);
+        }
+
+        .rank.normal {
+            background: #dee2e6;
+            color: var(--dark);
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 0;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .player-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .player-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 3px;
+        }
+
+        .player-name.me {
+            color: var(--primary);
+        }
+
+        .player-stats {
+            font-size: 13px;
+            color: var(--gray);
+        }
+
+        .player-score {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 15px;
+        }
+
+        .score-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        /* Trophy Icons */
+        .trophy {
+            font-size: 24px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #dee2e6;
+        }
+
+        /* Back Button */
+        .back-btn {
+            background: white;
+            color: var(--primary);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--primary);
+            background: white;
+            color: var(--primary);
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .my-stats {
+                flex-direction: column;
+            }
+
+            .player-card {
+                flex-wrap: wrap;
+            }
+
+            .player-score {
+                margin-left: 0;
+                margin-top: 10px;
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <i class="fas fa-trophy"></i>
+            لوحة المتصدرين
+            <i class="fas fa-trophy"></i>
+        </h1>
+        <p>تنافس مع أصدقائك واحتل المركز الأول!</p>
+    </div>
+
+    <!-- My Stats -->
+    <div class="my-stats">
+        <div class="stat-item">
+            <div class="stat-value" id="myRank">-</div>
+            <div class="stat-label">ترتيبي</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="myTotalPoints">0</div>
+            <div class="stat-label">إجمالي النقاط</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="myGamesPlayed">0</div>
+            <div class="stat-label">ألعاب لعبت</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" id="myWinRate">0%</div>
+            <div class="stat-label">نسبة الفوز</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <button class="filter-btn active" onclick="filterLeaderboard('all')">
+            <i class="fas fa-users"></i> الكل
+        </button>
+        <button class="filter-btn" onclick="filterLeaderboard('friends')">
+            <i class="fas fa-user-friends"></i> الأصدقاء فقط
+        </button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard">
+        <div class="leaderboard-header">
+            <div class="leaderboard-title">🏆 التصنيف العام</div>
+        </div>
+        <div id="leaderboardList"></div>
+    </div>
+
+    <!-- Back Button -->
+    <center>
+        <button class="back-btn" onclick="location.href='index.html'">
+            <i class="fas fa-arrow-right"></i>
+            رجوع للصفحة الرئيسية
+        </button>
+    </center>
+</div>
+
+<script>
+
+const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let allUsers = [];
+let currentFilter = 'all';
+
+// =========================================
+// 🔥 حساب النقاط لكل لاعب
+// =========================================
+function calculateStats(user) {
+    let mathGames = user.games || [];
+    let wordGames = user.wordGames || [];
+    
+    let totalPoints = 0;
+    let gamesPlayed = 0;
+    let wins = 0;
+
+    // حساب نقاط ألعاب الحساب
+    mathGames.forEach(game => {
+        if (game.status === 'finished') {
+            gamesPlayed++;
+            totalPoints += (game.myScore || 0);
+            
+            if (game.myScore > (game.opponentScore || 0)) {
+                wins++;
+            }
+        }
+    });
+
+    // حساب نقاط ألعاب الكلمات
+    wordGames.forEach(game => {
+        if (game.status === 'finished') {
+            gamesPlayed++;
+            totalPoints += (game.myScore || 0);
+            
+            if (game.myScore > (game.opponentScore || 0)) {
+                wins++;
+            }
+        }
+    });
+
+    let winRate = gamesPlayed > 0 ? Math.round((wins / gamesPlayed) * 100) : 0;
+
+    return {
+        totalPoints,
+        gamesPlayed,
+        wins,
+        winRate
+    };
+}
+
+// =========================================
+// 🔥 تحميل البيانات
+// =========================================
+function loadLeaderboard() {
+    $.get(API_URL, function(users) {
+        allUsers = users.map(u => {
+            u.id = String(u.id);
+            u.stats = calculateStats(u);
+            return u;
+        });
+
+        // ✅ ترتيب حسب النقاط (من الأعلى للأقل)
+        allUsers.sort((a, b) => b.stats.totalPoints - a.stats.totalPoints);
+
+        displayLeaderboard();
+        displayMyStats();
+    });
+}
+
+// =========================================
+// 🔥 عرض اللوحة
+// =========================================
+function displayLeaderboard() {
+    let container = $("#leaderboardList").html("");
+    
+    let usersToShow = allUsers;
+
+    // ✅ فلتر الأصدقاء فقط
+    if (currentFilter === 'friends') {
+        let myFriends = (me.friends || []).map(String);
+        usersToShow = allUsers.filter(u => 
+            String(u.id) === String(me.id) || myFriends.includes(String(u.id))
+        );
+    }
+
+    if (usersToShow.length === 0) {
+        container.html(`
+            <div class="empty-state">
+                <i class="fas fa-user-friends"></i>
+                <p>لا يوجد لاعبين حالياً</p>
+            </div>
+        `);
+        return;
+    }
+
+    usersToShow.forEach((user, index) => {
+        let rank = index + 1;
+        let rankClass = 'normal';
+        let trophy = '';
+
+        if (rank === 1) {
+            rankClass = 'gold';
+            trophy = '👑';
+        } else if (rank === 2) {
+            rankClass = 'silver';
+            trophy = '🥈';
+        } else if (rank === 3) {
+            rankClass = 'bronze';
+            trophy = '🥉';
+        }
+
+        let isMe = String(user.id) === String(me.id);
+        let cardClass = isMe ? 'player-card me' : 'player-card';
+        let nameClass = isMe ? 'player-name me' : 'player-name';
+
+        container.append(`
+            <div class="${cardClass}">
+                <div class="rank ${rankClass}">
+                    ${trophy || rank}
+                </div>
+                <div class="player-info">
+                    <img class="avatar" src="${user.avatar || 'https://via.placeholder.com/50'}">
+                    <div class="player-details">
+                        <div class="${nameClass}">
+                            ${user.username} ${isMe ? '(أنت)' : ''}
+                        </div>
+                        <div class="player-stats">
+                            ${user.stats.gamesPlayed} ألعاب • ${user.stats.wins} فوز • ${user.stats.winRate}% نسبة فوز
+                        </div>
+                    </div>
+                </div>
+                <div class="player-score">
+                    <div>
+                        <div class="score-value">${user.stats.totalPoints}</div>
+                        <div class="score-label">نقطة</div>
+                    </div>
+                </div>
+            </div>
+        `);
+    });
+}
+
+// =========================================
+// 🔥 عرض إحصائياتي
+// =========================================
+function displayMyStats() {
+    let myRank = allUsers.findIndex(u => String(u.id) === String(me.id)) + 1;
+    let myStats = allUsers.find(u => String(u.id) === String(me.id))?.stats || {
+        totalPoints: 0,
+        gamesPlayed: 0,
+        wins: 0,
+        winRate: 0
+    };
+
+    $("#myRank").text(myRank > 0 ? myRank : '-');
+    $("#myTotalPoints").text(myStats.totalPoints);
+    $("#myGamesPlayed").text(myStats.gamesPlayed);
+    $("#myWinRate").text(myStats.winRate + '%');
+}
+
+// =========================================
+// 🔥 فلتر اللوحة
+// =========================================
+function filterLeaderboard(filter) {
+    currentFilter = filter;
+    
+    // تحديث الأزرار
+    $(".filter-btn").removeClass("active");
+    event.target.classList.add("active");
+    
+    displayLeaderboard();
+}
+
+// =========================================
+// 🚀 تشغيل
+// =========================================
+loadLeaderboard();
+
+// تحديث تلقائي كل 10 ثواني
+setInterval(loadLeaderboard, 10000);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo {
+            margin-bottom: 25px;
+        }
+
+        .logo i {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--dark);
+            margin-bottom: 30px;
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group i {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 18px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 50px 15px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background-color: #f8f9fa;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        button:hover {
+            background: linear-gradient(to right, var(--secondary), var(--primary));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .links {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            display: inline-block;
+            margin: 0 5px;
+        }
+
+        .links a:hover {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .divider span {
+            padding: 0 15px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            color: var(--dark);
+            border: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .social-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        @media (max-width: 480px) {
+            .box {
+                padding: 30px 20px;
+            }
+            
+            h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="box">
+            <div class="logo">
+                <i class="fas fa-users"></i>
+            </div>
+            <h2>تسجيل الدخول</h2>
+            
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="email" placeholder="البريد الإلكتروني">
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="كلمة المرور">
+            </div>
+            
+            <button id="loginBtn">تسجيل الدخول</button>
+            
+            <div class="links">
+                <a href="register.html">إنشاء حساب جديد</a>
+            </div>
+            
+            <div class="divider">
+                <span>أو</span>
+            </div>
+            
+            <div class="social-login">
+                <div class="social-btn">
+                    <i class="fab fa-google"></i>
+                </div>
+                <div class="social-btn">
+                    <i class="fab fa-facebook-f"></i>
+                </div>
+                <div class="social-btn">
+                    <i class="fab fa-twitter"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            © 2023 تطبيق التواصل الاجتماعي. جميع الحقوق محفوظة.
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+
+        $("#loginBtn").click(function () {
+            let email = $("#email").val().trim();
+            let pass  = $("#password").val().trim();
+
+            $.get(API_URL, function (users) {
+                let user = users.find(u => u.email === email && u.password === pass);
+
+                if (user) {
+                    localStorage.setItem("user", JSON.stringify(user));
+                    window.location.href = "index.html";
+                } else {
+                    alert("خطأ في البريد الإلكتروني أو كلمة المرور!");
+                }
+            });
+        });
+        
+        // إضافة إمكانية الضغط على Enter لتسجيل الدخول
+        $(document).keypress(function(event) {
+            if (event.which === 13) {
+                $("#loginBtn").click();
+            }
+        });
+    </script>
+</body>
+</html>

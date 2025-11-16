@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إنشاء حساب</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --success-dark: #38b2e0;
+            --danger: #f72585;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .box {
+            background: white;
+            padding: 40px 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .logo {
+            margin-bottom: 25px;
+        }
+
+        .logo i {
+            font-size: 48px;
+            color: var(--success);
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--dark);
+            margin-bottom: 30px;
+            font-weight: 700;
+            font-size: 28px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group i {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            color: var(--gray);
+            font-size: 18px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 50px 15px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            transition: var(--transition);
+            background-color: #f8f9fa;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--success);
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.2);
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            text-align: right;
+            font-size: 14px;
+            height: 20px;
+        }
+
+        .strength-weak { color: var(--danger); }
+        .strength-medium { color: #ff9e00; }
+        .strength-strong { color: var(--success); }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(to right, var(--success), var(--success-dark));
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(76, 201, 240, 0.3);
+        }
+
+        button:hover {
+            background: linear-gradient(to right, var(--success-dark), var(--success));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 201, 240, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .links {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .links a {
+            color: var(--success);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            display: inline-block;
+            margin: 0 5px;
+        }
+
+        .links a:hover {
+            color: var(--success-dark);
+            text-decoration: underline;
+        }
+
+        .terms {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .terms a {
+            color: var(--success);
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            text-decoration: underline;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            transition: var(--transition);
+            border-radius: 2px;
+        }
+
+        .progress-weak { background: var(--danger); width: 33%; }
+        .progress-medium { background: #ff9e00; width: 66%; }
+        .progress-strong { background: var(--success); width: 100%; }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        @media (max-width: 480px) {
+            .box {
+                padding: 30px 20px;
+            }
+            
+            h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="box">
+            <div class="logo">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h2>إنشاء حساب جديد</h2>
+            
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="username" placeholder="اسم المستخدم">
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="email" placeholder="البريد الإلكتروني">
+            </div>
+            
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="كلمة المرور">
+                <div class="progress-bar">
+                    <div class="progress" id="passwordProgress"></div>
+                </div>
+                <div class="password-strength" id="passwordStrength"></div>
+            </div>
+            
+            <button id="registerBtn">إنشاء الحساب</button>
+            
+            <div class="terms">
+                بمتابعة التسجيل، فإنك توافق على <a href="#">شروط الخدمة</a> و <a href="#">سياسة الخصوصية</a>
+            </div>
+            
+            <div class="links">
+                <a href="login.html">لديك حساب بالفعل؟ تسجيل الدخول</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            © 2023 تطبيق التواصل الاجتماعي. جميع الحقوق محفوظة.
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+
+        // دالة لفحص قوة كلمة المرور
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            let feedback = "";
+            
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/\d/)) strength++;
+            if (password.match(/[^a-zA-Z\d]/)) strength++;
+            
+            const progress = document.getElementById('passwordProgress');
+            const strengthText = document.getElementById('passwordStrength');
+            
+            if (password.length === 0) {
+                progress.className = 'progress';
+                progress.style.width = '0%';
+                strengthText.textContent = "";
+                return;
+            }
+            
+            if (strength < 2) {
+                progress.className = 'progress progress-weak';
+                strengthText.textContent = "ضعيفة";
+                strengthText.className = "password-strength strength-weak";
+            } else if (strength < 4) {
+                progress.className = 'progress progress-medium';
+                strengthText.textContent = "متوسطة";
+                strengthText.className = "password-strength strength-medium";
+            } else {
+                progress.className = 'progress progress-strong';
+                strengthText.textContent = "قوية";
+                strengthText.className = "password-strength strength-strong";
+            }
+        }
+
+        $("#registerBtn").click(function () {
+            let username = $("#username").val().trim();
+            let email    = $("#email").val().trim();
+            let pass     = $("#password").val().trim();
+
+            if (!username || !email || !pass) {
+                alert("الرجاء تعبئة جميع الحقول!");
+                return;
+            }
+
+            // 1️⃣ التحقق من وجود إيميل مسبقاً
+            $.get(API_URL, function (users) {
+                let exists = users.find(u => u.email === email);
+
+                if (exists) {
+                    alert("هذا البريد الإلكتروني مستخدم بالفعل!");
+                    return;
+                }
+
+                // 2️⃣ إذا لا يوجد → نكمل عملية التسجيل
+                $.post(API_URL, {
+                    username: username,
+                    email: email,
+                    password: pass,
+                    avatar: "default.png",  // افتراضي
+                    friends: [],
+                    settings: {}
+                })
+                .done(function () {
+                    alert("تم إنشاء الحساب بنجاح!");
+                    window.location.href = "login.html";
+                })
+                .fail(function () {
+                    alert("حدث خطأ أثناء التسجيل!");
+                });
+            });
+        });
+
+        // إضافة مستمع الحدث لفحص قوة كلمة المرور أثناء الكتابة
+        $("#password").on('input', function() {
+            checkPasswordStrength($(this).val());
+        });
+
+        // إضافة إمكانية الضغط على Enter للتسجيل
+        $(document).keypress(function(event) {
+            if (event.which === 13) {
+                $("#registerBtn").click();
+            }
+        });
+    </script>
+</body>
+</html>

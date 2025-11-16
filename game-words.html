@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>🎯 حيوان جماد نبات</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .game-box {
+            width: 100%;
+            max-width: 700px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            color: #f5576c;
+            font-size: 28px;
+        }
+
+        .players-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .player {
+            text-align: center;
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .player-score {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f5576c;
+            margin: 5px 0;
+        }
+
+        .player-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .round-indicator {
+            background: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .challenge-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            color: white;
+        }
+
+        .letter {
+            font-size: 80px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .category {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .input-group {
+            text-align: right;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: #f5576c;
+            box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.1);
+        }
+
+        input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        button {
+            margin-top: 15px;
+            width: 100%;
+            padding: 15px;
+            background: #f5576c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #e04658;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: #888;
+            margin-top: 10px;
+        }
+
+        button.secondary:hover {
+            background: #666;
+        }
+
+        button.danger {
+            background: #dc3545;
+            margin-top: 10px;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        .result-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: right;
+        }
+
+        .result-item {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-item.correct {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result-item.wrong {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .result-item.empty {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .winner {
+            font-size: 24px;
+            margin-top: 15px;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .winner.win {
+            color: #28a745;
+            background: #d4edda;
+        }
+
+        .winner.lose {
+            color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .winner.draw {
+            color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .game-over {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #f5576c;
+        }
+
+        .game-over h3 {
+            color: #f5576c;
+            margin-bottom: 15px;
+        }
+
+        .final-result {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .final-result.win {
+            color: #28a745;
+        }
+
+        .final-result.lose {
+            color: #dc3545;
+        }
+
+        .final-result.draw {
+            color: #ffc107;
+        }
+
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="game-box">
+    <h2>🎯 حيوان جماد نبات</h2>
+
+    <div class="round-indicator" id="roundIndicator">الجولة 1 / 5</div>
+
+    <div class="players-info">
+        <div class="player">
+            <div class="player-name" id="myName">أنا</div>
+            <div class="player-score" id="myScore">0</div>
+            <div class="player-status" id="myStatus">جاهز</div>
+        </div>
+        <div class="player">
+            <div class="player-name" id="opponentName">الخصم</div>
+            <div class="player-score" id="opponentScore">0</div>
+            <div class="player-status" id="opponentStatus">بانتظار...</div>
+        </div>
+    </div>
+
+    <div id="gameArea">
+        <div class="challenge-box">
+            <div class="letter" id="letterBox">؟</div>
+            <div class="category" id="categoryBox">انتظر...</div>
+        </div>
+
+        <div class="form-grid">
+            <div class="input-group">
+                <label>👦 اسم ولد</label>
+                <input type="text" id="boyName" placeholder="مثال: أحمد">
+            </div>
+            <div class="input-group">
+                <label>👧 اسم بنت</label>
+                <input type="text" id="girlName" placeholder="مثال: آية">
+            </div>
+            <div class="input-group">
+                <label>🦁 حيوان</label>
+                <input type="text" id="animal" placeholder="مثال: أسد">
+            </div>
+            <div class="input-group">
+                <label>🌳 نبات</label>
+                <input type="text" id="plant" placeholder="مثال: أرز">
+            </div>
+            <div class="input-group">
+                <label>🏺 جماد</label>
+                <input type="text" id="object" placeholder="مثال: إبرة">
+            </div>
+            <div class="input-group">
+                <label>🌍 بلاد</label>
+                <input type="text" id="country" placeholder="مثال: الأردن">
+            </div>
+        </div>
+
+        <button id="submitBtn" onclick="sendAnswers()">إرسال الإجابات</button>
+
+        <div id="resultBox" style="display:none;"></div>
+        <div class="winner" id="winnerBox" style="display:none;"></div>
+    </div>
+
+    <div id="gameOverBox" class="game-over" style="display:none;">
+        <h3>🏁 انتهت اللعبة!</h3>
+        <div class="final-score">
+            <div><strong id="myFinalName">أنت</strong>: <span id="myFinalScore">0</span></div>
+            <div><strong id="opFinalName">الخصم</strong>: <span id="opFinalScore">0</span></div>
+        </div>
+        <div class="final-result" id="finalResult"></div>
+    </div>
+
+    <button class="danger" id="endGameBtn" onclick="endGame()">إنهاء اللعبة</button>
+    <button class="secondary" onclick="location.href='index.html'">رجوع للصفحة الرئيسية</button>
+</div>
+
+<script>
+
+const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+const MAX_ROUNDS = 5;
+
+// الحروف العربية
+const ARABIC_LETTERS = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'];
+
+// قاعدة بيانات الإجابات الصحيحة - شاملة
+const VALID_ANSWERS = {
+    'ا': {
+        boyNames: ['أحمد', 'أمير', 'أيمن', 'إبراهيم', 'إسلام', 'أسامة', 'أنس', 'إياد', 'أدهم', 'إسماعيل', 'أديب', 'أركان', 'إلياس', 'أمجد'],
+        girlNames: ['آية', 'أمل', 'إيمان', 'أسماء', 'آلاء', 'أميرة', 'إسراء', 'أريج', 'إيناس', 'ألين', 'آمنة', 'أمينة', 'إلهام', 'أنفال'],
+        animals: ['أسد', 'أرنب', 'إوزة', 'أفعى', 'أخطبوط'],
+        plants: ['أرز', 'أناناس', 'إجاص'],
+        objects: ['إبرة', 'أريكة', 'أصيص', 'إناء', 'إطار'],
+        countries: ['الأردن', 'الإمارات', 'أمريكا', 'إسبانيا', 'إيطاليا', 'أستراليا', 'ألمانيا', 'أفغانستان', 'إيران', 'أوكرانيا', 'أوغندا', 'إثيوبيا']
+    },
+    'ب': {
+        boyNames: ['بلال', 'باسل', 'بشار', 'بدر', 'باسم', 'بكر', 'براء', 'بهاء'],
+        girlNames: ['بتول', 'بسمة', 'بشرى', 'بيان', 'بلقيس', 'بدور', 'بسنت', 'بيسان'],
+        animals: ['بقرة', 'بطة', 'ببغاء', 'بعوضة', 'بجعة', 'بومة', 'بغل'],
+        plants: ['بطاطس', 'بصل', 'بقدونس', 'برتقال', 'بطيخ', 'برقوق', 'بامية', 'بروكلي', 'بندورة'],
+        objects: ['باب', 'بطانية', 'برميل', 'بندقية', 'بوصلة', 'بالون', 'براد', 'بطاقة'],
+        countries: ['بريطانيا', 'بلجيكا', 'البحرين', 'بنغلاديش', 'بولندا', 'البرازيل', 'بلغاريا', 'بوليفيا']
+    },
+    'ت': {
+        boyNames: ['تامر', 'تيم', 'توفيق', 'تميم', 'تركي'],
+        girlNames: ['تالا', 'تمارا', 'تسنيم', 'تقى', 'تالة', 'تغريد', 'تيماء'],
+        animals: ['تمساح', 'تيس', 'ترسة'],
+        plants: ['تفاح', 'توت', 'تين', 'تمر'],
+        objects: ['تلفاز', 'تلفون', 'تاج', 'تنورة', 'ترمس', 'تابوت'],
+        countries: ['تونس', 'تركيا', 'تايلاند', 'تنزانيا', 'تشيلي']
+    },
+    'ث': {
+        boyNames: ['ثائر', 'ثابت', 'ثامر'],
+        girlNames: ['ثريا', 'ثناء', 'ثراء'],
+        animals: ['ثعبان', 'ثعلب', 'ثور'],
+        plants: ['ثوم', 'ثمام'],
+        objects: ['ثلاجة', 'ثوب', 'ثريا'],
+        countries: []
+    },
+    'ج': {
+        boyNames: ['جمال', 'جلال', 'جابر', 'جاسم', 'جميل', 'جواد', 'جعفر', 'جاد'],
+        girlNames: ['جنى', 'جود', 'جوري', 'جميلة', 'جنان', 'جولي', 'جيهان', 'جمانة'],
+        animals: ['جمل', 'جاموس', 'جراد', 'جرذ'],
+        plants: ['جزر', 'جرجير', 'جوافة', 'جوز هند'],
+        objects: ['جوال', 'جرس', 'جدار', 'جهاز', 'جزمة', 'جوارب'],
+        countries: ['الجزائر', 'جيبوتي', 'جورجيا', 'جامايكا']
+    },
+    'ح': {
+        boyNames: ['حسن', 'حسين', 'حمزة', 'حسام', 'حاتم', 'حذيفة', 'حارث', 'حليم'],
+        girlNames: ['حنان', 'حلا', 'حنين', 'حورية', 'حسناء', 'حياة', 'حبيبة', 'حميدة'],
+        animals: ['حصان', 'حمار', 'حمامة', 'حوت', 'حلزون', 'حرباء', 'حشرة'],
+        plants: ['حمص', 'حنطة'],
+        objects: ['حذاء', 'حقيبة', 'حبل', 'حزام', 'حجر', 'حلق'],
+        countries: []
+    },
+    'خ': {
+        boyNames: ['خالد', 'خليل', 'خضر', 'خليفة', 'خطاب'],
+        girlNames: ['خديجة', 'خولة', 'خلود', 'خيرية'],
+        animals: ['خروف', 'خنزير', 'خفاش', 'خيل'],
+        plants: ['خس', 'خيار', 'خوخ', 'خبيزة'],
+        objects: ['خاتم', 'خيط', 'خريطة', 'خزانة', 'خيمة'],
+        countries: []
+    },
+    'د': {
+        boyNames: ['داود', 'دانيال', 'ديب', 'درويش'],
+        girlNames: ['دانة', 'دينا', 'ديما', 'دعاء', 'ديالا', 'دلال', 'دارين'],
+        animals: ['دجاجة', 'ديك', 'دب', 'دولفين', 'دودة'],
+        plants: ['دراق', 'دوم', 'دوار الشمس'],
+        objects: ['دفتر', 'درج', 'دولاب', 'دبوس', 'دراجة'],
+        countries: ['دبي', 'الدنمارك']
+    },
+    'ذ': {
+        boyNames: ['ذياب', 'ذكي'],
+        girlNames: ['ذكرى'],
+        animals: ['ذئب', 'ذبابة'],
+        plants: ['ذرة'],
+        objects: ['ذهب'],
+        countries: []
+    },
+    'ر': {
+        boyNames: ['رامي', 'راشد', 'رضا', 'رياض', 'رائد', 'رشيد', 'رافت', 'ربيع'],
+        girlNames: ['رنا', 'ريم', 'رهف', 'روان', 'رغد', 'رنيم', 'رباب', 'رشا', 'روز', 'رانيا'],
+        animals: ['رخم', 'ريم'],
+        plants: ['رمان', 'روزماري', 'ريحان'],
+        objects: ['راديو', 'رف', 'رمح', 'ريموت'],
+        countries: ['روسيا', 'رومانيا', 'رواندا']
+    },
+    'ز': {
+        boyNames: ['زيد', 'زياد', 'زاهر', 'زكريا', 'زين', 'زاهي'],
+        girlNames: ['زينب', 'زهراء', 'زينة', 'زهرة', 'زين', 'زمزم'],
+        animals: ['زرافة', 'زواحف', 'زيبرا'],
+        plants: ['زيتون', 'زنجبيل', 'زعتر', 'زهرة'],
+        objects: ['زجاج', 'زر', 'زجاجة', 'زورق'],
+        countries: ['زيمبابوي', 'زامبيا']
+    },
+    'س': {
+        boyNames: ['سامي', 'سعيد', 'سالم', 'سليم', 'سلطان', 'سعد', 'سليمان', 'سامر', 'سفيان'],
+        girlNames: ['سارة', 'سلمى', 'سناء', 'سمية', 'سلسبيل', 'سما', 'سمر', 'سهير', 'سهى'],
+        animals: ['سمكة', 'سلحفاة', 'سنجاب', 'سمان', 'سحلية', 'سرطان'],
+        plants: ['سبانخ', 'سفرجل', 'سماق'],
+        objects: ['سرير', 'سيارة', 'ساعة', 'سجادة', 'سلم', 'سكين', 'سفينة', 'سلة'],
+        countries: ['سوريا', 'السعودية', 'السودان', 'سنغافورة', 'سويسرا', 'السويد', 'سريلانكا']
+    },
+    'ش': {
+        boyNames: ['شادي', 'شاهر', 'شريف', 'شكري', 'شهاب'],
+        girlNames: ['شيماء', 'شذى', 'شهد', 'شيرين', 'شروق', 'شادية'],
+        animals: ['شمبانزي', 'شاهين'],
+        plants: ['شمام', 'شعير', 'شاي'],
+        objects: ['شباك', 'شنطة', 'شمع', 'شماعة', 'شراب'],
+        countries: []
+    },
+    'ص': {
+        boyNames: ['صالح', 'صلاح', 'صهيب', 'صادق', 'صبحي', 'صفوان'],
+        girlNames: ['صفاء', 'صابرين', 'صفية', 'صبا'],
+        animals: ['صقر', 'صرصور'],
+        plants: ['صبار', 'صنوبر'],
+        objects: ['صندوق', 'صحن', 'صابون', 'صورة'],
+        countries: ['الصين', 'الصومال']
+    },
+    'ض': {
+        boyNames: ['ضياء', 'ضاري', 'ضرغام'],
+        girlNames: ['ضحى', 'ضي'],
+        animals: ['ضبع', 'ضفدع'],
+        plants: [],
+        objects: ['ضوء'],
+        countries: []
+    },
+    'ط': {
+        boyNames: ['طارق', 'طلال', 'طاهر', 'طه'],
+        girlNames: ['طيف', 'طيبة'],
+        animals: ['طاووس'],
+        plants: ['طماطم', 'طحالب'],
+        objects: ['طاولة', 'طائرة', 'طبل', 'طوب'],
+        countries: []
+    },
+    'ظ': {
+        boyNames: ['ظافر'],
+        girlNames: [],
+        animals: ['ظبي'],
+        plants: [],
+        objects: ['ظرف'],
+        countries: []
+    },
+    'ع': {
+        boyNames: ['عمر', 'علي', 'عبدالله', 'عثمان', 'عامر', 'عدنان', 'عماد', 'عصام', 'عزيز'],
+        girlNames: ['عائشة', 'علا', 'عبير', 'عهد', 'عفاف', 'عزة', 'عنود', 'عالية'],
+        animals: ['عصفور', 'عقرب', 'عنكبوت', 'عجل'],
+        plants: ['عنب', 'عدس', 'عرعر'],
+        objects: ['عصا', 'عقد', 'عين', 'عجلة'],
+        countries: ['عمان', 'العراق']
+    },
+    'غ': {
+        boyNames: ['غسان', 'غازي', 'غالب', 'غيث'],
+        girlNames: ['غادة', 'غالية', 'غيداء', 'غزل'],
+        animals: ['غراب', 'غزال', 'غوريلا'],
+        plants: ['غار'],
+        objects: ['غطاء', 'غرفة'],
+        countries: ['غانا', 'غواتيمالا', 'غينيا']
+    },
+    'ف': {
+        boyNames: ['فارس', 'فهد', 'فيصل', 'فراس', 'فادي', 'فواز', 'فؤاد'],
+        girlNames: ['فاطمة', 'فرح', 'فريدة', 'فايزة', 'فدوى', 'فداء'],
+        animals: ['فيل', 'فهد', 'فأر', 'فراشة'],
+        plants: ['فول', 'فجل', 'فستق', 'فراولة'],
+        objects: ['فرن', 'فرشاة', 'فانوس', 'فأس'],
+        countries: ['فلسطين', 'فرنسا', 'فنلندا', 'الفلبين', 'فنزويلا']
+    },
+    'ق': {
+        boyNames: ['قاسم', 'قصي', 'قيس', 'قتيبة'],
+        girlNames: ['قمر'],
+        animals: ['قرد', 'قط', 'قنفذ', 'قنديل'],
+        plants: ['قمح', 'قرنبيط', 'قرع'],
+        objects: ['قلم', 'قميص', 'قفل', 'قبعة', 'قارب'],
+        countries: ['قطر', 'قبرص']
+    },
+    'ك': {
+        boyNames: ['كريم', 'كمال', 'كرم', 'كامل'],
+        girlNames: ['كريمة', 'كوثر', 'كاميليا'],
+        animals: ['كلب', 'كنغر', 'كوالا'],
+        plants: ['كرز', 'كراث', 'كمثرى', 'كزبرة', 'كيوي'],
+        objects: ['كتاب', 'كرسي', 'كوب', 'كرة'],
+        countries: ['الكويت', 'كندا', 'كوريا', 'كولومبيا', 'كينيا']
+    },
+    'ل': {
+        boyNames: ['ليث', 'لؤي', 'لقمان'],
+        girlNames: ['ليلى', 'لينا', 'لمى', 'لارا', 'لبنى', 'لطيفة', 'لجين'],
+        animals: ['ليث', 'لاما'],
+        plants: ['ليمون', 'لوز', 'لوبيا'],
+        objects: ['لمبة', 'لوحة'],
+        countries: ['لبنان', 'ليبيا', 'لوكسمبورغ']
+    },
+    'م': {
+        boyNames: ['محمد', 'محمود', 'مصطفى', 'معاذ', 'مالك', 'مراد', 'مروان', 'مهند', 'ماجد', 'منير'],
+        girlNames: ['مريم', 'ملك', 'منى', 'ميرا', 'ماريا', 'مها', 'ميس', 'مرام', 'مي', 'منال'],
+        animals: ['ماعز', 'مها', 'ماموث'],
+        plants: ['موز', 'مانجو', 'ملوخية', 'ملفوف', 'مشمش'],
+        objects: ['مفتاح', 'مكتب', 'مروحة', 'ملعقة', 'مقص', 'مصباح', 'مرآة'],
+        countries: ['مصر', 'المغرب', 'ماليزيا', 'المكسيك', 'موريتانيا']
+    },
+    'ن': {
+        boyNames: ['نادر', 'ناصر', 'نبيل', 'نواف', 'نايف', 'نزار'],
+        girlNames: ['نور', 'نادية', 'نهى', 'نجلاء', 'نجوى', 'نسرين', 'نرمين', 'ناديا'],
+        animals: ['نمر', 'نحلة', 'نعامة', 'نسر', 'نمل'],
+        plants: ['نعناع', 'نرجس'],
+        objects: ['نافذة', 'نظارة', 'نجفة'],
+        countries: ['النرويج', 'نيجيريا', 'نيوزيلندا', 'النمسا', 'نيبال']
+    },
+    'ه': {
+        boyNames: ['هاني', 'هشام', 'هيثم', 'هادي', 'همام'],
+        girlNames: ['هالة', 'هبة', 'هدى', 'هند', 'هنادي', 'هيا', 'هيفاء'],
+        animals: ['هر', 'هدهد'],
+        plants: ['هيل'],
+        objects: ['هاتف'],
+        countries: ['هولندا', 'الهند', 'هونغ كونغ']
+    },
+    'و': {
+        boyNames: ['وائل', 'وليد', 'وسام', 'وسيم'],
+        girlNames: ['وفاء', 'ورد', 'وعد', 'وسن', 'وداد'],
+        animals: ['وعل', 'وزة', 'وطواط'],
+        plants: ['ورد'],
+        objects: ['وسادة'],
+        countries: []
+    },
+    'ي': {
+        boyNames: ['ياسر', 'يوسف', 'يزن', 'يامن', 'يزيد', 'ياسين', 'يحيى'],
+        girlNames: ['ياسمين', 'يارا', 'يسرى', 'يمنى', 'يسر'],
+        animals: ['يمامة', 'يعسوب'],
+        plants: ['يوسفي', 'ياسمين'],
+        objects: ['ياقة'],
+        countries: ['اليمن', 'اليابان', 'يوغوسلافيا']
+    }
+};
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let params = new URLSearchParams(location.search);
+let opponentId = String(params.get("op"));
+let gameId = params.get("game");
+
+let opponent;
+let myGame;
+let currentRound = 1;
+
+// =========================================
+// 🔥 جلب بيانات الخصم
+// =========================================
+$.get(API_URL + "/" + opponentId, function(res){
+    opponent = res;
+    $("#opponentName").text(opponent.username);
+    $("#opFinalName").text(opponent.username);
+});
+
+// =========================================
+// 🎮 اختيار حرف عشوائي
+// =========================================
+function generateChallenge() {
+    let letter = ARABIC_LETTERS[Math.floor(Math.random() * ARABIC_LETTERS.length)];
+    return {
+        letter: letter,
+        category: `اكتب كلمات تبدأ بحرف: ${letter}`
+    };
+}
+
+// =========================================
+// 🔍 التحقق من الإجابة - محدّث
+// =========================================
+function checkAnswer(letter, answer, type) {
+    if (!answer || answer.trim() === '') return null;
+    
+    answer = answer.trim();
+    
+    // ✅ 1. تحقق من أن الإجابة تبدأ بالحرف الصحيح
+    if (!answer.startsWith(letter)) return false;
+    
+    // ✅ 2. تحقق من قاعدة البيانات
+    if (VALID_ANSWERS[letter]) {
+        let validList = VALID_ANSWERS[letter][type] || [];
+        
+        // ✅ 3. تطابق تام مع القاعدة
+        return validList.includes(answer);
+    }
+    
+    // ❌ إذا الحرف مش موجود في القاعدة، نرفض الإجابة
+    return false;
+}
+
+// =========================================
+// 🔥 تحميل بيانات اللعبة
+// =========================================
+function loadGameData(callback) {
+    $.get(API_URL + "/" + me.id, function(user){
+        me = user;
+        localStorage.setItem("user", JSON.stringify(me));
+
+        me.wordGames = me.wordGames || [];
+        myGame = me.wordGames.find(g => g.id === gameId);
+
+        if (!myGame) {
+            alert("❌ لا توجد لعبة!");
+            location.href = "index.html";
+            return;
+        }
+
+        currentRound = myGame.round || 1;
+        $("#roundIndicator").text(`الجولة ${currentRound} / ${MAX_ROUNDS}`);
+        $("#myScore").text(myGame.myScore || 0);
+        $("#myName").text(me.username);
+        $("#myFinalName").text(me.username);
+
+        if (myGame.status === "invited") {
+            myGame.status = "playing";
+            myGame.round = 1;
+            myGame.myScore = 0;
+            myGame.opponentScore = 0;
+            saveGame();
+        }
+
+        if (myGame.status === "finished") {
+            showGameOver();
+            return;
+        }
+
+        if (callback) callback();
+    });
+}
+
+// =========================================
+// 🎮 عرض التحدي
+// =========================================
+function renderChallenge() {
+    $.get(API_URL + "/" + opponentId, function(fr){
+        let hisGame = fr.wordGames?.find(g => g.id === gameId);
+        
+        // إذا ما في تحدي
+        if (!myGame.challenge && (!hisGame || !hisGame.challenge)) {
+            // اللاعب الأول يولد التحدي
+            if (String(me.id) < String(opponentId)) {
+                let challenge = generateChallenge();
+                myGame.challenge = challenge;
+                myGame.myAnswers = null;
+                myGame.myAnswerTime = null;
+                saveGame();
+            } else {
+                $("#letterBox").html("⏳");
+                $("#categoryBox").text("بانتظار التحدي...");
+                return;
+            }
+        }
+        // إذا في تحدي عنده وما عندي
+        else if (!myGame.challenge && hisGame && hisGame.challenge) {
+            myGame.challenge = hisGame.challenge;
+            myGame.myAnswers = null;
+            myGame.myAnswerTime = null;
+            saveGame();
+        }
+
+        $("#letterBox").text(myGame.challenge.letter);
+        $("#categoryBox").text(myGame.challenge.category);
+
+        if (myGame.myAnswers) {
+            $("#myStatus").html("✅ أرسلت");
+            $("#submitBtn").prop("disabled", true);
+            $("input").prop("disabled", true);
+        } else {
+            $("#myStatus").html("⏳ جاري الكتابة...");
+            $("#submitBtn").prop("disabled", false);
+            $("input").prop("disabled", false);
+        }
+    });
+}
+
+// =========================================
+// 🔥 إرسال الإجابات
+// =========================================
+function sendAnswers() {
+    if (myGame.myAnswers) {
+        alert("لقد أرسلت إجاباتك بالفعل!");
+        return;
+    }
+
+    let answers = {
+        boyName: $("#boyName").val().trim(),
+        girlName: $("#girlName").val().trim(),
+        animal: $("#animal").val().trim(),
+        plant: $("#plant").val().trim(),
+        object: $("#object").val().trim(),
+        country: $("#country").val().trim()
+    };
+
+    myGame.myAnswers = answers;
+    myGame.myAnswerTime = Date.now();
+    
+    $("input").prop("disabled", true);
+    $("#submitBtn").prop("disabled", true);
+    $("#myStatus").html("✅ أرسلت");
+    
+    saveGame();
+}
+
+// =========================================
+// 🔥 حفظ اللعبة
+// =========================================
+function saveGame() {
+    $.ajax({
+        url: API_URL + "/" + me.id,
+        method: "PUT",
+        contentType: "application/json",
+        data: JSON.stringify(me),
+        success: function() {
+            $.get(API_URL + "/" + opponentId, function(fr){
+                fr.wordGames = fr.wordGames || [];
+
+                let g2 = fr.wordGames.find(g => g.id === gameId);
+
+                if (g2) {
+                    g2.status = myGame.status;
+                    g2.round = myGame.round;
+                    g2.challenge = myGame.challenge;
+                    g2.opponentAnswers = myGame.myAnswers;
+                    g2.opponentAnswerTime = myGame.myAnswerTime;
+                    g2.opponentScore = myGame.myScore;
+                }
+
+                $.ajax({
+                    url: API_URL + "/" + opponentId,
+                    method: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify(fr)
+                });
+            });
+        }
+    });
+}
+
+// =========================================
+// 🎯 فحص الفائز
+// =========================================
+function checkWinner() {
+    $.get(API_URL + "/" + opponentId, function(fr){
+        let hisGame = fr.wordGames?.find(g => g.id === gameId);
+        if (!hisGame) return;
+
+        let myAnswers = myGame.myAnswers;
+        let opAnswers = hisGame.myAnswers;
+
+        $("#opponentScore").text(hisGame.myScore || 0);
+
+        if (opAnswers) {
+            $("#opponentStatus").html("✅ أرسل");
+        } else {
+            $("#opponentStatus").html("⏳ ينتظر...");
+        }
+
+        if (!myAnswers || !opAnswers) return;
+
+        // حساب النقاط
+        let letter = myGame.challenge.letter;
+        
+        let myPoints = 0;
+        let opPoints = 0;
+        
+        let resultsHTML = '<div class="result-box"><h3>النتائج:</h3>';
+        
+        const categories = [
+            { key: 'boyName', label: 'اسم ولد', type: 'boyNames' },
+            { key: 'girlName', label: 'اسم بنت', type: 'girlNames' },
+            { key: 'animal', label: 'حيوان', type: 'animals' },
+            { key: 'plant', label: 'نبات', type: 'plants' },
+            { key: 'object', label: 'جماد', type: 'objects' },
+            { key: 'country', label: 'بلاد', type: 'countries' }
+        ];
+
+        categories.forEach(cat => {
+            let myAns = myAnswers[cat.key];
+            let opAns = opAnswers[cat.key];
+            
+            let myCorrect = checkAnswer(letter, myAns, cat.type);
+            let opCorrect = checkAnswer(letter, opAns, cat.type);
+            
+            if (myCorrect === true && opCorrect === true) {
+                myPoints++;
+                opPoints++;
+                resultsHTML += `<div class="result-item correct">✅ ${cat.label}: أنت (${myAns}) • الخصم (${opAns})</div>`;
+            } else if (myCorrect === true) {
+                myPoints++;
+                resultsHTML += `<div class="result-item correct">✅ ${cat.label}: ${myAns}</div>`;
+            } else if (myCorrect === false) {
+                resultsHTML += `<div class="result-item wrong">❌ ${cat.label}: ${myAns || 'فارغ'} (خطأ)</div>`;
+            } else {
+                resultsHTML += `<div class="result-item empty">⚠️ ${cat.label}: فارغ</div>`;
+            }
+        });
+        
+        resultsHTML += '</div>';
+        $("#resultBox").html(resultsHTML).show();
+
+        // حساب السرعة
+        let myTime = myGame.myAnswerTime || 0;
+        let opTime = hisGame.myAnswerTime || 0;
+        
+        let speedBonus = 0;
+        let winnerBox = $("#winnerBox");
+        
+        if (myPoints > 0 && opPoints > 0 && myTime < opTime) {
+            speedBonus = 1;
+            myPoints += speedBonus;
+        }
+
+        myGame.myScore = (myGame.myScore || 0) + myPoints;
+        
+        if (myPoints > opPoints) {
+            winnerBox.html(`🏆 فزت بـ ${myPoints} نقطة!` + (speedBonus ? ' ⚡ +1 للسرعة!' : '')).removeClass().addClass("winner win").show();
+        } else if (opPoints > myPoints) {
+            winnerBox.html(`❌ الخصم فاز بـ ${opPoints} نقطة!`).removeClass().addClass("winner lose").show();
+        } else {
+            winnerBox.html(`🤝 تعادل! كل واحد ${myPoints} نقطة`).removeClass().addClass("winner draw").show();
+        }
+
+        $("#myScore").text(myGame.myScore || 0);
+
+        if (currentRound >= MAX_ROUNDS) {
+            setTimeout(() => {
+                myGame.status = "finished";
+                saveGame();
+                showGameOver();
+            }, 5000);
+        } else {
+            setTimeout(() => {
+                myGame.challenge = null;
+                myGame.round = (myGame.round || 1) + 1;
+                myGame.myAnswers = null;
+                myGame.myAnswerTime = null;
+                
+                $("input").val("").prop("disabled", false);
+                $("#submitBtn").prop("disabled", false);
+                $("#resultBox").hide();
+                $("#winnerBox").hide();
+                $("#myStatus").html("جاهز");
+                $("#opponentStatus").html("بانتظار...");
+                
+                saveGame();
+                
+                setTimeout(() => {
+                    loadGameData(renderChallenge);
+                }, 800);
+            }, 5000);
+        }
+    });
+}
+
+// =========================================
+// 🏁 إنهاء اللعبة
+// =========================================
+function endGame() {
+    if (!confirm("هل أنت متأكد من إنهاء اللعبة؟")) return;
+
+    myGame.status = "finished";
+    saveGame();
+    
+    setTimeout(() => {
+        showGameOver();
+    }, 500);
+}
+
+// =========================================
+// 🏆 عرض شاشة النهاية
+// =========================================
+function showGameOver() {
+    $.get(API_URL + "/" + opponentId, function(fr){
+        let hisGame = fr.wordGames?.find(g => g.id === gameId);
+        
+        let myScore = myGame.myScore || 0;
+        let opScore = hisGame?.myScore || 0;
+
+        $("#gameArea").hide();
+        $("#endGameBtn").hide();
+        $("#gameOverBox").show();
+
+        $("#myFinalScore").text(myScore);
+        $("#opFinalScore").text(opScore);
+
+        let resultBox = $("#finalResult");
+
+        if (myScore > opScore) {
+            resultBox.html("🏆 أنت الفائز!").removeClass().addClass("final-result win");
+        } else if (opScore > myScore) {
+            resultBox.html("❌ خسرت اللعبة!").removeClass().addClass("final-result lose");
+        } else {
+            resultBox.html("🤝 تعادل!").removeClass().addClass("final-result draw");
+        }
+    });
+}
+
+// ==============================
+// 🎯 تحديث تلقائي
+// ==============================
+setInterval(function(){
+    if (myGame && myGame.status !== "finished") {
+        loadGameData(() => {
+            renderChallenge();
+            checkWinner();
+        });
+    }
+}, 2000);
+
+loadGameData(renderChallenge);
+
+</script>
+
+</body>
+</html>

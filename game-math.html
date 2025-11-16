@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>معركة الحساب</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .game-box {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            color: #2575fc;
+            font-size: 28px;
+        }
+
+        .players-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .player {
+            text-align: center;
+            flex: 1;
+        }
+
+        .player-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .player-score {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2575fc;
+            margin: 5px 0;
+        }
+
+        .player-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .question {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 30px 0;
+            color: #333;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: #2575fc;
+            box-shadow: 0 0 0 3px rgba(37, 117, 252, 0.1);
+        }
+
+        input:disabled {
+            background: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        button {
+            margin-top: 15px;
+            width: 100%;
+            padding: 15px;
+            background: #2575fc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1c5ed6;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: #888;
+            margin-top: 10px;
+        }
+
+        button.secondary:hover {
+            background: #666;
+        }
+
+        button.danger {
+            background: #dc3545;
+            margin-top: 10px;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #666;
+            min-height: 24px;
+        }
+
+        .winner {
+            font-size: 28px;
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 40px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .winner.win {
+            color: #28a745;
+            background: #d4edda;
+        }
+
+        .winner.lose {
+            color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .winner.draw {
+            color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .speed-icon {
+            display: inline-block;
+            animation: flash 0.5s ease-in-out 3;
+        }
+
+        @keyframes flash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .game-over {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #2575fc;
+        }
+
+        .game-over h3 {
+            color: #2575fc;
+            margin-bottom: 15px;
+        }
+
+        .final-score {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+
+        .final-result {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .final-result.win {
+            color: #28a745;
+        }
+
+        .final-result.lose {
+            color: #dc3545;
+        }
+
+        .final-result.draw {
+            color: #ffc107;
+        }
+
+        .round-indicator {
+            background: #6c757d;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="game-box">
+    <h2>🎮 معركة الحساب</h2>
+
+    <div class="round-indicator" id="roundIndicator">الجولة 1 / 5</div>
+
+    <div class="players-info">
+        <div class="player">
+            <div class="player-name" id="myName">أنا</div>
+            <div class="player-score" id="myScore">0</div>
+            <div class="player-status" id="myStatus">جاهز</div>
+        </div>
+        <div class="player">
+            <div class="player-name" id="opponentName">الخصم</div>
+            <div class="player-score" id="opponentScore">0</div>
+            <div class="player-status" id="opponentStatus">بانتظار...</div>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div id="gameArea">
+        <div class="question" id="questionBox">...</div>
+
+        <input type="number" id="answer" placeholder="اكتب إجابتك هنا">
+        <button id="submitBtn" onclick="sendAnswer()">إرسال الإجابة</button>
+
+        <div class="winner" id="winnerBox"></div>
+    </div>
+
+    <div id="gameOverBox" class="game-over" style="display:none;">
+        <h3>🏁 انتهت اللعبة!</h3>
+        <div class="final-score">
+            <div><strong id="myFinalName">أنت</strong>: <span id="myFinalScore">0</span></div>
+            <div><strong id="opFinalName">الخصم</strong>: <span id="opFinalScore">0</span></div>
+        </div>
+        <div class="final-result" id="finalResult"></div>
+    </div>
+
+    <button class="danger" id="endGameBtn" onclick="endGame()">إنهاء اللعبة</button>
+    <button class="secondary" onclick="location.href='index.html'">رجوع للصفحة الرئيسية</button>
+</div>
+
+<script>
+
+const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+const MAX_ROUNDS = 5;
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let params = new URLSearchParams(location.search);
+let opponentId = String(params.get("op"));
+let gameId = params.get("game");
+
+let opponent;
+let myGame;
+let currentRound = 1;
+
+// =========================================
+// 🔥 جلب بيانات الخصم
+// =========================================
+$.get(API_URL + "/" + opponentId, function(res){
+    opponent = res;
+    $("#opponentName").text(opponent.username);
+    $("#opFinalName").text(opponent.username);
+});
+
+// =========================================
+// 🎮 توليد سؤال جديد
+// =========================================
+function generateQuestion() {
+    let a = Math.floor(Math.random() * 20) + 1;
+    let b = Math.floor(Math.random() * 20) + 1;
+    let ops = ["+", "-", "*"];
+    let op = ops[Math.floor(Math.random() * 3)];
+
+    let question = `${a} ${op} ${b}`;
+    let answer = eval(question);
+
+    return { question, answer };
+}
+
+// =========================================
+// 🔥 تحميل بيانات اللعبة
+// =========================================
+function loadGameData(callback) {
+    $.get(API_URL + "/" + me.id, function(user){
+        me = user;
+        localStorage.setItem("user", JSON.stringify(me));
+
+        me.games = me.games || [];
+        myGame = me.games.find(g => g.id === gameId);
+
+        if (!myGame) {
+            $("#status").html("❌ لا توجد لعبة!");
+            return;
+        }
+
+        currentRound = myGame.round || 1;
+        $("#roundIndicator").text(`الجولة ${currentRound} / ${MAX_ROUNDS}`);
+        $("#myScore").text(myGame.myScore || 0);
+        $("#myName").text(me.username);
+        $("#myFinalName").text(me.username);
+
+        if (myGame.status === "invited") {
+            myGame.status = "playing";
+            myGame.round = 1;
+            myGame.myScore = 0;
+            myGame.opponentScore = 0;
+            saveGame();
+        }
+
+        if (myGame.status === "finished") {
+            showGameOver();
+            return;
+        }
+
+        if (callback) callback();
+    });
+}
+
+// =========================================
+// 🎮 عرض السؤال - FIXED
+// =========================================
+function renderQuestion() {
+    $.get(API_URL + "/" + opponentId, function(fr){
+        let hisGame = fr.games?.find(g => g.id === gameId);
+        
+        // ✅ إذا ما في سؤال عند أي حد
+        if (!myGame.question && (!hisGame || !hisGame.question)) {
+            // ✅ فقط اللاعب ذو الـ ID الأصغر يولّد السؤال
+            if (String(me.id) < String(opponentId)) {
+                let q = generateQuestion();
+
+                myGame.question = q.question;
+                myGame.answer = q.answer;
+                myGame.myAnswer = null;
+                myGame.opponentAnswer = null;
+
+                saveGame();
+            } else {
+                // ✅ اللاعب الثاني ينتظر السؤال
+                $("#questionBox").html("⏳ بانتظار السؤال...");
+                return;
+            }
+        }
+        // ✅ إذا في سؤال عنده وما عندي، خذه منه
+        else if (!myGame.question && hisGame && hisGame.question) {
+            myGame.question = hisGame.question;
+            myGame.answer = hisGame.answer;
+            myGame.myAnswer = null;
+            myGame.opponentAnswer = null;
+
+            saveGame();
+        }
+
+        $("#questionBox").text(myGame.question);
+
+        if (myGame.myAnswer != null) {
+            $("#myStatus").html("✅ أجبت");
+            $("#submitBtn").prop("disabled", true);
+        } else {
+            $("#myStatus").html("⏳ جاري الإجابة...");
+            $("#submitBtn").prop("disabled", false);
+        }
+    });
+}
+
+// =========================================
+// 🔥 إرسال الإجابة - مع التوقيت
+// =========================================
+function sendAnswer() {
+    let myAns = $("#answer").val().trim();
+    if (!myAns) {
+        alert("الرجاء كتابة إجابة!");
+        return;
+    }
+
+    if (myGame.myAnswer != null) {
+        alert("لقد أرسلت إجابتك بالفعل!");
+        return;
+    }
+
+    // ✅ حفظ وقت الإجابة
+    myGame.myAnswer = Number(myAns);
+    myGame.myAnswerTime = Date.now(); // ⏱️ وقت الإجابة
+    
+    $("#answer").prop("disabled", true);
+    $("#submitBtn").prop("disabled", true);
+    $("#myStatus").html("✅ أجبت");
+    
+    saveGame();
+}
+
+// =========================================
+// 🔥 حفظ اللعبة
+// =========================================
+function saveGame() {
+    $.ajax({
+        url: API_URL + "/" + me.id,
+        method: "PUT",
+        contentType: "application/json",
+        data: JSON.stringify(me),
+        success: function() {
+            $.get(API_URL + "/" + opponentId, function(fr){
+                fr.games = fr.games || [];
+
+                let g2 = fr.games.find(g => g.id === gameId);
+
+                if (g2) {
+                    g2.status = myGame.status;
+                    g2.round = myGame.round;
+                    g2.question = myGame.question;
+                    g2.answer = myGame.answer;
+                    g2.opponentAnswer = myGame.myAnswer;
+                    g2.opponentAnswerTime = myGame.myAnswerTime; // ⏱️ حفظ وقت إجابتي عنده
+                    g2.opponentScore = myGame.myScore;
+                }
+
+                $.ajax({
+                    url: API_URL + "/" + opponentId,
+                    method: "PUT",
+                    contentType: "application/json",
+                    data: JSON.stringify(fr)
+                });
+            });
+        }
+    });
+}
+
+// =========================================
+// 🎯 فحص الفائز - مع نظام السرعة
+// =========================================
+function checkWinner() {
+    $.get(API_URL + "/" + opponentId, function(fr){
+        let hisGame = fr.games?.find(g => g.id === gameId);
+        if (!hisGame) return;
+
+        let myAns = myGame.myAnswer;
+        let opAns = hisGame.myAnswer;
+
+        $("#opponentScore").text(hisGame.myScore || 0);
+
+        if (opAns != null) {
+            $("#opponentStatus").html("✅ أجاب");
+        } else {
+            $("#opponentStatus").html("⏳ ينتظر...");
+        }
+
+        if (myAns == null || opAns == null) return;
+
+        let correctAnswer = myGame.answer;
+        let myCorrect = (myAns == correctAnswer);
+        let opCorrect = (opAns == correctAnswer);
+
+        let winnerBox = $("#winnerBox");
+        let speedBonus = ""; // رسالة السرعة
+
+        // ✅ حساب النقاط مع السرعة
+        if (myCorrect && opCorrect) {
+            // كلاهما صح - نفحص من الأسرع
+            let myTime = myGame.myAnswerTime || 0;
+            let opTime = hisGame.myAnswerTime || 0;
+
+            if (myTime < opTime) {
+                // ✅ أنا أسرع - نقطتين (1 للإجابة + 1 للسرعة)
+                myGame.myScore = (myGame.myScore || 0) + 2;
+                speedBonus = " ⚡ +1 نقطة للسرعة!";
+                winnerBox.html("🏆 أنت الفائز! (إجابة صحيحة + أسرع)" + speedBonus).removeClass().addClass("winner win");
+            } else if (opTime < myTime) {
+                // ❌ هو أسرع - أنا آخذ نقطة واحدة فقط
+                myGame.myScore = (myGame.myScore || 0) + 1;
+                winnerBox.html("✅ إجابة صحيحة! لكن الخصم كان أسرع ⚡").removeClass().addClass("winner draw");
+            } else {
+                // نفس الوقت - كل واحد نقطة
+                myGame.myScore = (myGame.myScore || 0) + 1;
+                winnerBox.html("🤝 تعادل! كلاكما أجاب بنفس السرعة").removeClass().addClass("winner draw");
+            }
+        }
+        else if (myCorrect && !opCorrect) {
+            // ✅ أنا صح وهو غلط - نقطة واحدة
+            myGame.myScore = (myGame.myScore || 0) + 1;
+            winnerBox.html("🏆 أنت الفائز بهذه الجولة!").removeClass().addClass("winner win");
+        }
+        else if (opCorrect && !myCorrect) {
+            // ❌ هو صح وأنا غلط
+            winnerBox.html("❌ خسرت هذه الجولة! الإجابة: " + correctAnswer).removeClass().addClass("winner lose");
+        }
+        else {
+            // كلاهما غلط
+            winnerBox.html("🤷‍♂️ لا أحد أجاب بشكل صحيح! الإجابة: " + correctAnswer).removeClass().addClass("winner draw");
+        }
+
+        $("#myScore").text(myGame.myScore || 0);
+
+        if (currentRound >= MAX_ROUNDS) {
+            setTimeout(() => {
+                myGame.status = "finished";
+                saveGame();
+                showGameOver();
+            }, 3000);
+        } else {
+            // ✅ جولة جديدة
+            setTimeout(() => {
+                myGame.question = null;
+                myGame.answer = null;
+                myGame.round = (myGame.round || 1) + 1;
+                myGame.myAnswer = null;
+                myGame.myAnswerTime = null; // ⏱️ حذف الوقت
+                myGame.opponentAnswer = null;
+                myGame.opponentAnswerTime = null; // ⏱️ حذف وقت الخصم
+                
+                $("#answer").val("").prop("disabled", false);
+                $("#submitBtn").prop("disabled", false);
+                $("#winnerBox").html("");
+                $("#myStatus").html("جاهز");
+                $("#opponentStatus").html("بانتظار...");
+                
+                saveGame();
+                
+                setTimeout(() => {
+                    loadGameData(renderQuestion);
+                }, 800);
+            }, 3000);
+        }
+    });
+}
+
+// =========================================
+// 🏁 إنهاء اللعبة يدوياً
+// =========================================
+function endGame() {
+    if (!confirm("هل أنت متأكد من إنهاء اللعبة؟")) return;
+
+    myGame.status = "finished";
+    saveGame();
+    
+    setTimeout(() => {
+        showGameOver();
+    }, 500);
+}
+
+// =========================================
+// 🏆 عرض شاشة النهاية
+// =========================================
+function showGameOver() {
+    $.get(API_URL + "/" + opponentId, function(fr){
+        let hisGame = fr.games?.find(g => g.id === gameId);
+        
+        let myScore = myGame.myScore || 0;
+        let opScore = hisGame?.myScore || 0;
+
+        $("#gameArea").hide();
+        $("#endGameBtn").hide();
+        $("#gameOverBox").show();
+
+        $("#myFinalScore").text(myScore);
+        $("#opFinalScore").text(opScore);
+
+        let resultBox = $("#finalResult");
+
+        if (myScore > opScore) {
+            resultBox.html("🏆 أنت الفائز!").removeClass().addClass("final-result win");
+        } else if (opScore > myScore) {
+            resultBox.html("❌ خسرت اللعبة!").removeClass().addClass("final-result lose");
+        } else {
+            resultBox.html("🤝 تعادل!").removeClass().addClass("final-result draw");
+        }
+    });
+}
+
+// ==============================
+// 🎯 تحديث تلقائي
+// ==============================
+setInterval(function(){
+    if (myGame && myGame.status !== "finished") {
+        loadGameData(() => {
+            renderQuestion();
+            checkWinner();
+        });
+    }
+}, 2000);
+
+loadGameData(renderQuestion);
+
+</script>
+
+</body>
+</html>

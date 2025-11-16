@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>🏟️ التحديات الجماعية</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 36px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 30px;
+            background: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Create Room Button */
+        .create-btn {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, var(--success), #20c997);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .create-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Rooms Grid */
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Room Card */
+        .room-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .room-card.math {
+            border-top: 5px solid #2575fc;
+        }
+
+        .room-card.words {
+            border-top: 5px solid #f5576c;
+        }
+
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .room-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .room-type {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .room-type.math {
+            background: #e3f2fd;
+            color: #2575fc;
+        }
+
+        .room-type.words {
+            background: #ffebee;
+            color: #f5576c;
+        }
+
+        .room-info {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .room-info span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .room-status {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        .room-status.waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .room-status.playing {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .room-status.finished {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .room-players {
+            margin: 15px 0;
+        }
+
+        .room-players-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .players-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .player-chip {
+            background: #f8f9fa;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .player-chip.creator {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .room-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .room-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .room-btn.join {
+            background: var(--success);
+            color: white;
+        }
+
+        .room-btn.enter {
+            background: var(--primary);
+            color: white;
+        }
+
+        .room-btn.results {
+            background: var(--info);
+            color: white;
+        }
+
+        .room-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .room-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #dee2e6;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .modal-btn.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .back-btn {
+            background: white;
+            color: var(--primary);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .rooms-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <i class="fas fa-users"></i>
+            التحديات الجماعية
+            <i class="fas fa-trophy"></i>
+        </h1>
+        <p>تنافس مع أصدقائك في غرف جماعية!</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('all')">
+            <i class="fas fa-list"></i> جميع الغرف
+        </button>
+        <button class="tab-btn" onclick="switchTab('math')">
+            🎮 غرف الحساب
+        </button>
+        <button class="tab-btn" onclick="switchTab('words')">
+            🎯 غرف الكلمات
+        </button>
+        <button class="tab-btn" onclick="switchTab('my')">
+            <i class="fas fa-user"></i> غرفي
+        </button>
+    </div>
+
+    <!-- Create Room Button -->
+    <center>
+        <button class="create-btn" onclick="openCreateModal()">
+            <i class="fas fa-plus-circle"></i>
+            إنشاء غرفة جديدة
+        </button>
+    </center>
+
+    <!-- Rooms List -->
+    <div id="roomsList" class="rooms-grid"></div>
+
+    <!-- Back Button -->
+    <center style="margin-top: 30px;">
+        <button class="back-btn" onclick="location.href='index.html'">
+            <i class="fas fa-arrow-right"></i>
+            رجوع للصفحة الرئيسية
+        </button>
+    </center>
+</div>
+
+<!-- Create Room Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">إنشاء غرفة جديدة</div>
+        
+        <div class="form-group">
+            <label>اسم الغرفة</label>
+            <input type="text" id="roomName" placeholder="مثال: غرفة الأبطال">
+        </div>
+
+        <div class="form-group">
+            <label>نوع اللعبة</label>
+            <select id="gameType">
+                <option value="math">🎮 لعبة الحساب</option>
+                <option value="words">🎯 لعبة الكلمات</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>عدد الجولات</label>
+            <select id="maxRounds">
+                <option value="5">5 جولات</option>
+                <option value="10">10 جولات</option>
+                <option value="15">15 جولة</option>
+            </select>
+        </div>
+
+        <div class="modal-actions">
+            <button class="modal-btn primary" onclick="createRoom()">
+                <i class="fas fa-check"></i> إنشاء
+            </button>
+            <button class="modal-btn secondary" onclick="closeCreateModal()">
+                إلغاء
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+const ROOMS_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let currentTab = 'all';
+let allRooms = [];
+
+// =========================================
+// 🔥 تحميل الغرف
+// =========================================
+function loadRooms() {
+    $.get(ROOMS_URL, function(rooms) {
+        allRooms = rooms;
+        displayRooms();
+    });
+}
+
+// =========================================
+// 🔥 عرض الغرف
+// =========================================
+function displayRooms() {
+    let container = $("#roomsList").html("");
+    
+    let filtered = allRooms.filter(room => {
+        if (currentTab === 'all') return true;
+        if (currentTab === 'math') return room.gameType === 'math';
+        if (currentTab === 'words') return room.gameType === 'words';
+        if (currentTab === 'my') return room.players.some(p => p.id === String(me.id));
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.html(`
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3>لا توجد غرف</h3>
+                <p>كن أول من ينشئ غرفة!</p>
+            </div>
+        `);
+        return;
+    }
+
+    filtered.forEach(room => {
+        let isCreator = room.creatorId === String(me.id);
+        let isPlayer = room.players.some(p => p.id === String(me.id));
+        
+        let statusClass = room.status;
+        let statusText = {
+            'waiting': '⏳ في الانتظار',
+            'playing': '▶️ جارية',
+            'finished': '🏁 انتهت'
+        }[room.status];
+
+        let typeClass = room.gameType;
+        let typeText = room.gameType === 'math' ? '🎮 حساب' : '🎯 كلمات';
+
+        let playersHTML = room.players.map(p => {
+            let isCreatorChip = p.id === room.creatorId;
+            return `<div class="player-chip ${isCreatorChip ? 'creator' : ''}">
+                ${isCreatorChip ? '👑 ' : ''}${p.username}
+            </div>`;
+        }).join('');
+
+        let actionHTML = '';
+        if (room.status === 'waiting') {
+            if (isPlayer) {
+                actionHTML = `
+                    <button class="room-btn enter" onclick="enterRoom('${room.id}')">
+                        دخول الغرفة
+                    </button>
+                `;
+                // أزرار المنشئ فقط
+                if (isCreator) {
+                    actionHTML += `
+                        <button class="room-btn" style="background:#17a2b8;" onclick="inviteFriends('${room.id}')">
+                            <i class="fas fa-user-plus"></i> دعوة
+                        </button>
+                        <button class="room-btn" style="background:#ffc107;" onclick="editRoom('${room.id}')">
+                            <i class="fas fa-edit"></i> تعديل
+                        </button>
+                        <button class="room-btn" style="background:#dc3545;" onclick="deleteRoom('${room.id}')">
+                            <i class="fas fa-trash"></i> حذف
+                        </button>
+                    `;
+                }
+            } else {
+                actionHTML = `
+                    <button class="room-btn join" onclick="joinRoom('${room.id}')">
+                        انضمام
+                    </button>
+                `;
+            }
+        } else if (room.status === 'playing' && isPlayer) {
+            actionHTML = `
+                <button class="room-btn enter" onclick="enterRoom('${room.id}')">
+                    متابعة اللعب
+                </button>
+            `;
+        } else if (room.status === 'finished') {
+            actionHTML = `
+                <button class="room-btn results" onclick="viewResults('${room.id}')">
+                    عرض النتائج
+                </button>
+            `;
+            if (isCreator) {
+                actionHTML += `
+                    <button class="room-btn" style="background:#dc3545;" onclick="deleteRoom('${room.id}')">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                `;
+            }
+        }
+
+        container.append(`
+            <div class="room-card ${typeClass}">
+                <div class="room-header">
+                    <div class="room-title">${room.name}</div>
+                    <div class="room-type ${typeClass}">${typeText}</div>
+                </div>
+
+                <div class="room-status ${statusClass}">${statusText}</div>
+
+                <div class="room-info">
+                    <span><i class="fas fa-users"></i> ${room.players.length} لاعب</span>
+                    <span><i class="fas fa-gamepad"></i> ${room.maxRounds} جولات</span>
+                </div>
+
+                <div class="room-players">
+                    <div class="room-players-title">اللاعبين:</div>
+                    <div class="players-list">${playersHTML}</div>
+                </div>
+
+                <div class="room-actions">
+                    ${actionHTML}
+                </div>
+            </div>
+        `);
+    });
+}
+
+// =========================================
+// 🔥 تبديل التبويبات
+// =========================================
+function switchTab(tab) {
+    currentTab = tab;
+    $(".tab-btn").removeClass("active");
+    event.target.classList.add("active");
+    displayRooms();
+}
+
+// =========================================
+// 🔥 فتح نافذة الإنشاء
+// =========================================
+function openCreateModal() {
+    $("#createModal").addClass("active");
+}
+
+function closeCreateModal() {
+    $("#createModal").removeClass("active");
+}
+
+// =========================================
+// 🔥 إنشاء غرفة
+// =========================================
+function createRoom() {
+    let name = $("#roomName").val().trim();
+    let gameType = $("#gameType").val();
+    let maxRounds = parseInt($("#maxRounds").val());
+
+    if (!name) {
+        alert("الرجاء كتابة اسم الغرفة!");
+        return;
+    }
+
+    let room = {
+        name: name,
+        gameType: gameType,
+        maxRounds: maxRounds,
+        status: 'waiting',
+        creatorId: String(me.id),
+        players: [{
+            id: String(me.id),
+            username: me.username,
+            score: 0
+        }],
+        currentRound: 0,
+        createdAt: Date.now()
+    };
+
+    $.ajax({
+        url: ROOMS_URL,
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(room),
+        success: function(response) {
+            alert("تم إنشاء الغرفة!");
+            closeCreateModal();
+            loadRooms();
+        }
+    });
+}
+
+// =========================================
+// 🔥 الانضمام لغرفة
+// =========================================
+function joinRoom(roomId) {
+    $.get(ROOMS_URL + "/" + roomId, function(room) {
+        if (room.status !== 'waiting') {
+            alert("هذه الغرفة بدأت بالفعل!");
+            return;
+        }
+
+        if (room.players.some(p => p.id === String(me.id))) {
+            alert("أنت بالفعل في هذه الغرفة!");
+            return;
+        }
+
+        room.players.push({
+            id: String(me.id),
+            username: me.username,
+            score: 0
+        });
+
+        $.ajax({
+            url: ROOMS_URL + "/" + roomId,
+            method: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(room),
+            success: function() {
+                alert("تم الانضمام للغرفة!");
+                loadRooms();
+            }
+        });
+    });
+}
+
+// =========================================
+// 🔥 دخول الغرفة
+// =========================================
+function enterRoom(roomId) {
+    $.get(ROOMS_URL + "/" + roomId, function(room) {
+        if (room.gameType === 'math') {
+            location.href = "room-math.html?room=" + roomId;
+        } else {
+            location.href = "room-words.html?room=" + roomId;
+        }
+    });
+}
+
+// =========================================
+// 🔥 عرض النتائج
+// =========================================
+function viewResults(roomId) {
+    location.href = "room-results.html?room=" + roomId;
+}
+
+// =========================================
+// 🔥 دعوة الأصدقاء
+// =========================================
+function inviteFriends(roomId) {
+    $.get(API_URL + "/" + me.id, function(user) {
+        let friends = user.friends || [];
+        
+        if (friends.length === 0) {
+            alert("ليس لديك أصدقاء للدعوة!");
+            return;
+        }
+
+        $.get(API_URL, function(allUsers) {
+            let friendsList = friends.map(fid => {
+                let friend = allUsers.find(u => String(u.id) === fid);
+                return friend ? `${friend.username} (ID: ${friend.id})` : null;
+            }).filter(f => f).join('\n');
+
+            let friendIds = prompt(`اختر أصدقاء للدعوة (أدخل ID مفصولة بفواصل):\n\n${friendsList}`);
+            
+            if (!friendIds) return;
+
+            let ids = friendIds.split(',').map(id => id.trim());
+            
+            // إرسال إشعارات (يمكن تطويره لاحقاً)
+            alert(`تم إرسال دعوات لـ ${ids.length} أصدقاء!\nشارك معهم رابط الغرفة: rooms.html`);
+        });
+    });
+}
+
+// =========================================
+// 🔥 تعديل الغرفة
+// =========================================
+function editRoom(roomId) {
+    $.get(ROOMS_URL + "/" + roomId, function(room) {
+        if (room.status !== 'waiting') {
+            alert("لا يمكن تعديل غرفة بدأت أو انتهت!");
+            return;
+        }
+
+        let newName = prompt("اسم الغرفة الجديد:", room.name);
+        if (!newName) return;
+
+        let newRounds = prompt("عدد الجولات:", room.maxRounds);
+        if (!newRounds) return;
+
+        room.name = newName;
+        room.maxRounds = parseInt(newRounds);
+
+        $.ajax({
+            url: ROOMS_URL + "/" + roomId,
+            method: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify(room),
+            success: function() {
+                alert("تم تعديل الغرفة!");
+                loadRooms();
+            }
+        });
+    });
+}
+
+// =========================================
+// 🔥 حذف الغرفة
+// =========================================
+function deleteRoom(roomId) {
+    if (!confirm("هل أنت متأكد من حذف الغرفة؟")) return;
+
+    $.ajax({
+        url: ROOMS_URL + "/" + roomId,
+        method: "DELETE",
+        success: function() {
+            alert("تم حذف الغرفة!");
+            loadRooms();
+        },
+        error: function() {
+            alert("فشل حذف الغرفة!");
+        }
+    });
+}
+
+// ==============================
+// 🎯 تحديث تلقائي
+// ==============================
+setInterval(loadRooms, 3000);
+
+loadRooms();
+
+</script>
+
+</body>
+</html>
