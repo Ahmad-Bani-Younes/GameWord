@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>معركة الحساب</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
@@ -227,6 +228,14 @@
             display: inline-block;
             margin-bottom: 15px;
         }
+
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+            color: #dc3545;
+            margin: 10px 0;
+            animation: pulse 1s infinite;
+        }
     </style>
 </head>
 
@@ -236,6 +245,7 @@
     <h2>🎮 معركة الحساب</h2>
 
     <div class="round-indicator" id="roundIndicator">الجولة 1 / 5</div>
+    <div id="timer" class="timer">7</div>
 
     <div class="players-info">
         <div class="player">
@@ -297,6 +307,9 @@ let gameId = params.get("game");
 let opponent;
 let myGame;
 let currentRound = 1;
+let timerInterval;
+let timeLeft = 7;
+let lastQuestion = "";
 
 // =========================================
 // 🔥 جلب بيانات الخصم من Firebase
@@ -404,9 +417,18 @@ function renderQuestion() {
 
         $("#questionBox").text(myGame.question);
 
+        // ⏰ تشغيل المؤقت عند ظهور سؤال جديد
+        if (myGame.question && myGame.question !== lastQuestion) {
+            lastQuestion = myGame.question;
+            if (myGame.myAnswer == null) {
+                startTimer();
+            }
+        }
+
         if (myGame.myAnswer != null) {
             $("#myStatus").html("✅ أجبت");
             $("#submitBtn").prop("disabled", true);
+            clearInterval(timerInterval); // إيقاف المؤقت إذا أجاب
         } else {
             $("#myStatus").html("⏳ جاري الإجابة...");
             $("#submitBtn").prop("disabled", false);
@@ -414,6 +436,41 @@ function renderQuestion() {
     }).catch(err => {
         console.error("خطأ في عرض السؤال:", err);
     });
+}
+
+// =========================================
+// ⏰ المؤقت
+// =========================================
+function startTimer() {
+    clearInterval(timerInterval);
+    timeLeft = 7;
+    $("#timer").text(timeLeft);
+    $("#timer").css("color", "#dc3545");
+    
+    timerInterval = setInterval(() => {
+        timeLeft--;
+        $("#timer").text(timeLeft);
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            handleTimeout();
+        }
+    }, 1000);
+}
+
+function handleTimeout() {
+    if (myGame.myAnswer != null) return; // أجاب بالفعل
+    
+    $("#answer").prop("disabled", true);
+    $("#submitBtn").prop("disabled", true);
+    $("#status").html("⏰ انتهى الوقت!");
+    $("#timer").text("انتهى الوقت!");
+    
+    // إرسال إجابة خاطئة للإشارة لانتهاء الوقت
+    myGame.myAnswer = -999; 
+    myGame.myAnswerTime = Date.now() + 999999; // عقوبة وقت
+    
+    saveGame();
 }
 
 // =========================================
@@ -430,6 +487,8 @@ function sendAnswer() {
         alert("لقد أرسلت إجابتك بالفعل!");
         return;
     }
+
+    clearInterval(timerInterval); // 🛑 إيقاف المؤقت
 
     // ✅ حفظ وقت الإجابة
     myGame.myAnswer = Number(myAns);
@@ -558,6 +617,7 @@ function checkWinner() {
                 $("#winnerBox").html("");
                 $("#myStatus").html("جاهز");
                 $("#opponentStatus").html("بانتظار...");
+                $("#timer").text("7"); // إعادة تعيين المؤقت بصرياً
                 
                 saveGame();
                 

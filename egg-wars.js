@@ -150,6 +150,7 @@ function initGame(opponentId) {
                 x: teamConfig.eggX,
                 y: teamConfig.eggY,
                 broken: false,
+                health: 7, // Initialize with 7 hits
                 color: teamConfig.color,
                 ownerId: (p.id || p)
             };
@@ -202,7 +203,16 @@ function initGame(opponentId) {
             const val = snapshot.val();
             if (val) {
                 Object.keys(val).forEach(team => {
-                    if (eggs[team]) eggs[team].broken = val[team];
+                    if (eggs[team]) {
+                        if (typeof val[team] === 'object') {
+                            eggs[team].broken = val[team].broken;
+                            eggs[team].health = val[team].health;
+                        } else {
+                            // Legacy support
+                            eggs[team].broken = val[team];
+                            eggs[team].health = val[team] ? 0 : 7;
+                        }
+                    }
                 });
                 updateEggUI();
             }
@@ -460,8 +470,20 @@ function attack() {
             if (!egg.broken) {
                 const dist = Math.hypot(me.x - egg.x, me.y - egg.y);
                 if (dist < 50) {
-                    gameRef.child('eggs').update({ [team]: true });
-                    alert(`لقد دمرت بيضة ${team}!`);
+                    // Decrement health
+                    let currentHealth = egg.health !== undefined ? egg.health : 7;
+                    let newHealth = currentHealth - 1;
+                    let isBroken = newHealth <= 0;
+                    
+                    // Update Firebase
+                    gameRef.child('eggs').child(team).set({
+                        health: newHealth,
+                        broken: isBroken
+                    });
+
+                    if (isBroken) {
+                        alert(`لقد دمرت بيضة ${team}!`);
+                    }
                 }
             }
         }
@@ -550,7 +572,11 @@ function updateEggUI() {
         div.style.borderRadius = '5px';
         div.style.opacity = egg.broken ? '0.5' : '1';
         div.style.textDecoration = egg.broken ? 'line-through' : 'none';
-        div.innerText = team.toUpperCase();
+        
+        // Show health if not broken
+        const healthText = egg.broken ? '' : ` (${egg.health !== undefined ? egg.health : 7})`;
+        div.innerText = team.toUpperCase() + healthText;
+        
         container.appendChild(div);
     });
 }
