@@ -209,6 +209,13 @@
             }
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script src="firebase.js"></script>
+
 </head>
 
 <body>
@@ -254,7 +261,7 @@
         </div>
     </div>
 
-    <script>
+    <!-- <script>
         const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
 
         // دالة لفحص قوة كلمة المرور
@@ -341,6 +348,111 @@
                 $("#registerBtn").click();
             }
         });
-    </script>
+    </script> -->
+
+
+    <script>
+
+// حساب قوة الباسورد (يبقى نفس كودك)
+function checkPasswordStrength(password) {
+    let strength = 0;
+    let feedback = "";
+
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+    if (password.match(/\d/)) strength++;
+    if (password.match(/[^a-zA-Z\d]/)) strength++;
+
+    const progress = document.getElementById('passwordProgress');
+    const strengthText = document.getElementById('passwordStrength');
+
+    if (password.length === 0) {
+        progress.className = 'progress';
+        progress.style.width = '0%';
+        strengthText.textContent = "";
+        return;
+    }
+
+    if (strength < 2) {
+        progress.className = 'progress progress-weak';
+        strengthText.textContent = "ضعيفة";
+        strengthText.className = "password-strength strength-weak";
+    } else if (strength < 4) {
+        progress.className = 'progress progress-medium';
+        strengthText.textContent = "متوسطة";
+        strengthText.className = "password-strength strength-medium";
+    } else {
+        progress.className = 'progress progress-strong';
+        strengthText.textContent = "قوية";
+        strengthText.className = "password-strength strength-strong";
+    }
+}
+
+
+// تسجيل حساب جديد عبر Firebase
+$("#registerBtn").click(async function () {
+
+    let username = $("#username").val().trim();
+    let email    = $("#email").val().trim();
+    let pass     = $("#password").val().trim();
+
+    if (!username || !email || !pass) {
+        alert("الرجاء تعبئة جميع الحقول!");
+        return;
+    }
+
+    try {
+        // 1️⃣ إنشاء الحساب في Firebase Auth
+        let userCredential = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+        let user = userCredential.user;
+
+        // 2️⃣ حفظ البيانات في Realtime Database
+        await firebase.database().ref("users/" + user.uid).set({
+            id: user.uid,
+            username: username,
+            email: email,
+            avatar: "https://ui-avatars.com/api/?name=" + encodeURIComponent(username),
+            friends: [],
+            pending: [],
+            sent: [],
+            games: [],
+            wordGames: [],
+            createdAt: Date.now()
+        });
+
+        alert("تم إنشاء الحساب بنجاح!");
+        window.location.href = "login.html";
+
+    } catch (error) {
+        console.log(error);
+
+        if (error.code === "auth/email-already-in-use") {
+            alert("هذا البريد الإلكتروني مستخدم بالفعل!");
+        } else if (error.code === "auth/invalid-email") {
+            alert("البريد الإلكتروني غير صالح!");
+        } else if (error.code === "auth/weak-password") {
+            alert("كلمة المرور ضعيفة! يجب أن تكون 6 أحرف على الأقل.");
+        } else {
+            alert("حدث خطأ أثناء إنشاء الحساب!");
+        }
+    }
+});
+
+
+// قوة كلمة المرور
+$("#password").on('input', function() {
+    checkPasswordStrength($(this).val());
+});
+
+// زر Enter يسجل مباشرة
+$(document).keypress(function(event) {
+    if (event.which === 13) {
+        $("#registerBtn").click();
+    }
+});
+
+</script>
+
+
 </body>
 </html>

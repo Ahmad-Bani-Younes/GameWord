@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💬 الرسائل</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 160px);
+        }
+
+        /* Contacts List */
+        .contacts-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .contacts-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .contact-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .contact-item:hover {
+            background: #e9ecef;
+            transform: translateX(-5px);
+        }
+
+        .contact-item.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .contact-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .contact-item.active .contact-avatar {
+            background: white;
+            color: #667eea;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-name {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .contact-last-message {
+            font-size: 13px;
+            opacity: 0.7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .unread-badge {
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 2px solid #f8f9fa;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-header-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .chat-header-info h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .chat-header-info p {
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            max-width: 60%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.received .message-content {
+            background: white;
+            color: #333;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.sent .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-input {
+            padding: 20px;
+            border-top: 2px solid #f8f9fa;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .message-input input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .empty-chat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+        }
+
+        .empty-chat i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                grid-template-columns: 1fr;
+            }
+
+            .contacts-list {
+                display: none;
+            }
+
+            .contacts-list.active {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1><i class="fas fa-comments"></i> الرسائل</h1>
+        <a href="index.html" class="back-btn">
+            <i class="fas fa-arrow-right"></i> رجوع
+        </a>
+    </div>
+
+    <div class="chat-container">
+        <!-- Contacts List -->
+        <div class="contacts-list" id="contactsList">
+            <div class="contacts-header">المحادثات</div>
+            <div id="contactsContainer">
+                <!-- سيتم ملؤها ديناميكياً -->
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area" id="chatArea">
+            <div class="empty-chat">
+                <i class="fas fa-comments"></i>
+                <h3>اختر محادثة للبدء</h3>
+                <p>اختر صديق من القائمة على اليمين</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🔥 Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+
+<!-- 🔥 Firebase Data -->
+<script src="firebase-data.js"></script>
+
+<script>
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let currentChatUserId = null;
+let allUsers = [];
+
+// =========================================
+// 🔥 تحميل جهات الاتصال (الأصدقاء)
+// =========================================
+function loadContacts() {
+    getUser(me.id).then(user => {
+        const friends = user.friends || [];
+        
+        if (friends.length === 0) {
+            document.getElementById('contactsContainer').innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #6c757d;">
+                    <i class="fas fa-user-friends" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>لا يوجد أصدقاء بعد</p>
+                    <a href="index.html" style="color: #667eea; text-decoration: none; margin-top: 10px; display: block;">أضف أصدقاء</a>
+                </div>
+            `;
+            return;
+        }
+
+        return getAllUsers().then(users => {
+            allUsers = users;
+            const friendsData = friends.map(fid => 
+                users.find(u => String(u.id) === fid)
+            ).filter(f => f);
+
+            displayContacts(friendsData);
+        });
+    }).catch(err => {
+        console.error("خطأ في تحميل الأصدقاء:", err);
+    });
+}
+
+// =========================================
+// 🔥 عرض جهات الاتصال
+// =========================================
+function displayContacts(friends) {
+    const container = document.getElementById('contactsContainer');
+    container.innerHTML = '';
+
+    friends.forEach(friend => {
+        const contactItem = document.createElement('div');
+        contactItem.className = 'contact-item';
+        contactItem.onclick = () => openChat(friend);
+
+        const avatar = friend.username.charAt(0).toUpperCase();
+        
+        contactItem.innerHTML = `
+            <div class="contact-avatar">${avatar}</div>
+            <div class="contact-info">
+                <div class="contact-name">${friend.username}</div>
+                <div class="contact-last-message">انقر للمحادثة</div>
+            </div>
+        `;
+
+        container.appendChild(contactItem);
+    });
+}
+
+// =========================================
+// 🔥 فتح محادثة
+// =========================================
+function openChat(friend) {
+    currentChatUserId = friend.id;
+
+    // تحديث القائمة
+    document.querySelectorAll('.contact-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.target.closest('.contact-item').classList.add('active');
+
+    // إنشاء واجهة الشات
+    const chatArea = document.getElementById('chatArea');
+    const avatar = friend.username.charAt(0).toUpperCase();
+    
+    chatArea.innerHTML = `
+        <div class="chat-header">
+            <div class="chat-header-avatar">${avatar}</div>
+            <div class="chat-header-info">
+                <h3>${friend.username}</h3>
+                <p>متصل</p>
+            </div>
+        </div>
+        <div class="messages-container" id="messagesContainer">
+            <!-- الرسائل هنا -->
+        </div>
+        <div class="message-input">
+            <input type="text" id="messageInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    `;
+
+    // تحميل الرسائل
+    loadMessages(friend.id);
+}
+
+// =========================================
+// 🔥 تحميل الرسائل
+// =========================================
+function loadMessages(friendId) {
+    const chatId = getChatId(me.id, friendId);
+    
+    firebase.database().ref('chats/' + chatId + '/messages')
+        .on('value', snapshot => {
+            const messages = [];
+            snapshot.forEach(child => {
+                messages.push({ ...child.val(), id: child.key });
+            });
+
+            displayMessages(messages);
+        });
+}
+
+// =========================================
+// 🔥 عرض الرسائل
+// =========================================
+function displayMessages(messages) {
+    const container = document.getElementById('messagesContainer');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (messages.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6c757d;">
+                <i class="fas fa-comment-dots" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
+                <p>لا توجد رسائل بعد</p>
+                <p style="font-size: 14px; margin-top: 10px;">ابدأ المحادثة بإرسال رسالة!</p>
+            </div>
+        `;
+        return;
+    }
+
+    messages.forEach(msg => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = msg.senderId === String(me.id) ? 'message sent' : 'message received';
+        
+        const time = new Date(msg.timestamp).toLocaleTimeString('ar-SA', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+
+        messageDiv.innerHTML = `
+            <div>
+                <div class="message-content">${msg.text}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+
+        container.appendChild(messageDiv);
+    });
+
+    // التمرير للأسفل
+    container.scrollTop = container.scrollHeight;
+}
+
+// =========================================
+// 🔥 إرسال رسالة
+// =========================================
+function sendMessage() {
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+
+    if (!text || !currentChatUserId) return;
+
+    const chatId = getChatId(me.id, currentChatUserId);
+    const messageData = {
+        text: text,
+        senderId: String(me.id),
+        receiverId: String(currentChatUserId),
+        timestamp: Date.now(),
+        read: false
+    };
+
+    firebase.database().ref('chats/' + chatId + '/messages').push(messageData)
+        .then(() => {
+            input.value = '';
+            input.focus();
+        })
+        .catch(err => {
+            console.error("خطأ في إرسال الرسالة:", err);
+            alert("حدث خطأ في إرسال الرسالة!");
+        });
+}
+
+// =========================================
+// 🔥 الحصول على معرف المحادثة
+// =========================================
+function getChatId(userId1, userId2) {
+    // ترتيب المعرفات لضمان نفس المعرف للمحادثة بغض النظر عن الترتيب
+    return [userId1, userId2].sort().join('_');
+}
+
+// تحميل جهات الاتصال عند بدء الصفحة
+loadContacts();
+
+</script>
+
+</body>
+</html>

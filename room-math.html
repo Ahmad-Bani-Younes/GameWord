@@ -267,10 +267,17 @@
     <button class="secondary" onclick="location.href='rooms.html'">رجوع للغرف</button>
 </div>
 
+<!-- 🔥 Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+
+<!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
+<script src="firebase-data.js"></script>
+
 <script>
 
-const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
-const ROOMS_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
+// 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 
 let me = JSON.parse(localStorage.getItem("user"));
 if (!me) location.href = "login.html";
@@ -296,10 +303,16 @@ function generateQuestion() {
 }
 
 // =========================================
-// 🔥 تحميل الغرفة
+// 🔥 تحميل الغرفة من Firebase
 // =========================================
 function loadRoom() {
-    $.get(ROOMS_URL + "/" + roomId, function(data) {
+    getRoom(roomId).then(data => {
+        if (!data) {
+            alert("الغرفة غير موجودة!");
+            location.href = "rooms.html";
+            return;
+        }
+
         room = data;
         
         // ✅ تنظيف الإجابات - احذف المفاتيح اللي مش IDs
@@ -350,6 +363,9 @@ function loadRoom() {
         } else if (room.status === 'finished') {
             location.href = "room-results.html?room=" + roomId;
         }
+    }).catch(err => {
+        console.error("خطأ في تحميل الغرفة:", err);
+        alert("حدث خطأ في تحميل الغرفة!");
     });
 }
 
@@ -432,7 +448,7 @@ function displayQuestion() {
 }
 
 // =========================================
-// 🔥 إرسال الإجابة
+// 🔥 إرسال الإجابة إلى Firebase
 // =========================================
 function submitAnswer() {
     let myAnswer = $("#answer").val().trim();
@@ -444,26 +460,27 @@ function submitAnswer() {
     $("#answer").prop("disabled", true);
     $("#submitBtn").prop("disabled", true);
 
-    // ✅ جلب أحدث نسخة من الغرفة أولاً
-    $.get(ROOMS_URL + "/" + roomId, function(latestRoom) {
+    // ✅ جلب أحدث نسخة من الغرفة أولاً من Firebase
+    getRoom(roomId).then(latestRoom => {
         latestRoom.answers = latestRoom.answers || {};
         latestRoom.answers[String(me.id)] = {
             answer: Number(myAnswer),
             time: Date.now()
         };
 
-        // ✅ حفظ على السيرفر
-        $.ajax({
-            url: ROOMS_URL + "/" + roomId,
-            method: "PUT",
-            contentType: "application/json",
-            data: JSON.stringify(latestRoom),
-            success: function() {
-                // ✅ تحديث النسخة المحلية
-                room = latestRoom;
-                checkAllAnswered();
-            }
-        });
+        // ✅ حفظ على Firebase
+        return updateRoom(roomId, latestRoom);
+    }).then(() => {
+        // ✅ تحديث النسخة المحلية
+        return getRoom(roomId);
+    }).then(updatedRoom => {
+        room = updatedRoom;
+        checkAllAnswered();
+    }).catch(err => {
+        console.error("خطأ في إرسال الإجابة:", err);
+        alert("حدث خطأ في إرسال الإجابة!");
+        $("#answer").prop("disabled", false);
+        $("#submitBtn").prop("disabled", false);
     });
 }
 
@@ -472,8 +489,8 @@ function submitAnswer() {
 // =========================================
 function checkAllAnswered() {
     setTimeout(() => {
-        // ✅ جلب أحدث نسخة للتأكد
-        $.get(ROOMS_URL + "/" + roomId, function(data) {
+        // ✅ جلب أحدث نسخة للتأكد من Firebase
+        getRoom(roomId).then(data => {
             room = data;
             
             if (!room.answers) return;
@@ -485,6 +502,8 @@ function checkAllAnswered() {
                 isCalculating = true; // ✅ إيقاف التحديث التلقائي
                 calculateScores();
             }
+        }).catch(err => {
+            console.error("خطأ في فحص الإجابات:", err);
         });
     }, 1500); // ✅ زيادة الوقت للتأكد من حفظ الجميع
 }
@@ -530,14 +549,14 @@ function calculateScores() {
         room.answers = {};
     }
 
-    // ✅ حفظ أولاً
+    // ✅ حفظ على Firebase أولاً
     saveRoom(() => {
         if (room.status === 'finished') {
             location.href = "room-results.html?room=" + roomId;
         } else {
             // ✅ انتظر قليلاً ثم ولّد سؤال جديد
             setTimeout(() => {
-                $.get(ROOMS_URL + "/" + roomId, function(updatedRoom) {
+                getRoom(roomId).then(updatedRoom => {
                     room = updatedRoom;
                     
                     // المنشئ يولد السؤال الجديد
@@ -551,6 +570,9 @@ function calculateScores() {
                     } else {
                         isCalculating = false; // ✅ إعادة تشغيل التحديث التلقائي
                     }
+                }).catch(err => {
+                    console.error("خطأ في تحميل الغرفة:", err);
+                    isCalculating = false;
                 });
             }, 1500);
         }
@@ -558,22 +580,18 @@ function calculateScores() {
 }
 
 // =========================================
-// 🔥 حفظ الغرفة
+// 🔥 حفظ الغرفة في Firebase
 // =========================================
 function saveRoom(callback) {
-    $.ajax({
-        url: ROOMS_URL + "/" + roomId,
-        method: "PUT",
-        contentType: "application/json",
-        data: JSON.stringify(room),
-        success: function() {
-            if (callback) callback();
-        }
+    updateRoom(roomId, room).then(() => {
+        if (callback) callback();
+    }).catch(err => {
+        console.error("خطأ في حفظ الغرفة:", err);
     });
 }
 
 // ==============================
-// 🎯 تحديث تلقائي
+// 🎯 تحديث تلقائي من Firebase
 // ==============================
 setInterval(function() {
     if (!room || room.status !== 'finished') {

@@ -41,7 +41,6 @@
             padding: 20px;
         }
 
-        /* Header Styles */
         .header {
             background: white;
             border-radius: var(--border-radius);
@@ -110,7 +109,6 @@
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
         }
 
-        /* Search Box */
         .search-box {
             position: relative;
             min-width: 280px;
@@ -131,6 +129,76 @@
             border-color: var(--primary);
             background: white;
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .search-results-dropdown.active {
+            display: block;
+        }
+
+        .search-result-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+
+        .search-result-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .search-result-info {
+            flex: 1;
+        }
+
+        .search-result-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .search-result-email {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .search-result-action {
+            padding: 6px 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
         }
 
         .search-box i {
@@ -189,7 +257,6 @@
             animation: pulse 1.3s infinite;
         }
 
-        /* Section Styles */
         .section {
             background: white;
             border-radius: var(--border-radius);
@@ -236,7 +303,6 @@
             font-weight: 600;
         }
 
-        /* Card Styles */
         .user-card {
             padding: 18px;
             background: #f8f9fa;
@@ -298,7 +364,6 @@
             text-overflow: ellipsis;
         }
 
-        /* Action Buttons */
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -354,7 +419,6 @@
             cursor: not-allowed;
         }
 
-        /* Badge for unread messages */
         .badge {
             background: var(--danger);
             color: white;
@@ -396,7 +460,6 @@
             font-size: 15px;
         }
 
-        /* Status Labels */
         .status-label {
             padding: 4px 10px;
             border-radius: 12px;
@@ -415,14 +478,12 @@
             color: #0c5460;
         }
 
-        /* Grid Layout */
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 25px;
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -469,67 +530,47 @@
                 justify-content: center;
             }
         }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .section {
-                padding: 20px;
-            }
-            
-            .section-title {
-                font-size: 18px;
-            }
-            
-            .btn {
-                padding: 10px 15px;
-                font-size: 13px;
-            }
-            
-            .user-info {
-                flex-direction: column;
-                align-items: center;
-                gap: 10px;
-                text-align: center;
-            }
-            
-            .action-buttons {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .action-btn {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .search-box input {
-                padding: 10px 40px 10px 12px;
-            }
-        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <!-- Header Section -->
+        <!-- ✅ بانر رسائل الإدارة -->
+        <div id="adminMessagesBanner" style="display: none; background: linear-gradient(135deg, #f8961e, #ff6b35); padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(248, 150, 30, 0.3); cursor: pointer; transition: all 0.3s ease;" onclick="openAdminMessagesModal()">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="background: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; animation: pulse 2s infinite;">
+                        👑
+                    </div>
+                    <div>
+                        <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">رسائل الإدارة</h3>
+                        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">لديك <span id="adminMsgCount" style="font-weight: bold;">0</span> رسالة جديدة من الإدارة</p>
+                    </div>
+                </div>
+                <div style="background: white; color: #f8961e; padding: 10px 20px; border-radius: 25px; font-weight: 700; font-size: 14px;">
+                    اضغط للعرض <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <div class="welcome-section">
                 <h1>أهلاً وسهلاً!</h1>
                 <p id="welcome"></p>
             </div>
             <div class="header-actions">
-                <div class="messages-icon" onclick="openMessages()">
-                    <i class="fas fa-envelope"></i>
-                    <div class="msg-badge" id="messagesBadge">0</div>
+                <!-- ✅ زر الإشعارات فقط -->
+                <div class="messages-icon" onclick="openNotificationsCenter()" title="الإشعارات">
+                    <i class="fas fa-bell"></i>
+                    <div class="msg-badge" id="notificationBadge">0</div>
                 </div>
 
                 <div class="search-box">
                     <div class="search-badge" id="searchBadge">0</div>
                     <input id="searchInput" type="text" placeholder="ابحث عن مستخدم..." oninput="searchUsers()">
                     <i class="fas fa-search"></i>
+                    
+                    <div class="search-results-dropdown" id="searchResultsDropdown"></div>
                 </div>
                 <div class="btn-group">
                     <button class="btn primary" onclick="location.href='rooms.html'">
@@ -552,9 +593,7 @@
             </div>
         </div>
 
-        <!-- Main Content Grid -->
         <div class="grid-container">
-            <!-- Friend Requests Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
@@ -566,7 +605,6 @@
                 <div id="requestsList"></div>
             </div>
 
-            <!-- Sent Requests Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
@@ -578,7 +616,6 @@
                 <div id="sentRequestsList"></div>
             </div>
 
-            <!-- Friend Suggestions Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
@@ -589,7 +626,6 @@
                 <div id="suggestions"></div>
             </div>
 
-            <!-- Friends List Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
@@ -601,7 +637,6 @@
                 <div id="friendsList"></div>
             </div>
 
-            <!-- Math Challenge Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
@@ -611,7 +646,6 @@
                 <div id="mathChallengesList"></div>
             </div>
 
-            <!-- Word Game Challenge Section -->
             <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
@@ -621,34 +655,272 @@
                 <div id="wordChallengesList"></div>
             </div>
 
-            <!-- Search Results Section -->
-            <div class="section" id="searchSection" style="display:none;">
+            <div class="section">
                 <div class="section-header">
                     <h2 class="section-title">
-                        <i class="fas fa-search"></i>
-                        نتائج البحث
+                        🥚 تحديات حرب البيض
                     </h2>
-                    <button class="action-btn reject" onclick="closeSearch()">
-                        <i class="fas fa-times"></i>
-                        إغلاق
-                    </button>
                 </div>
-                <div id="searchResults"></div>
+                <div id="eggWarsChallengesList"></div>
             </div>
+
+
+
+
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+    <script src="firebase-data.js"></script>
+
     <script>
-        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+        // إخفاء أخطاء Firebase من الكونسول
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        console.warn = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('FIREBASE') || message.includes('permission_denied')) {
+                return; // تجاهل أخطاء Firebase
+            }
+            originalWarn.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('FIREBASE') || message.includes('permission_denied')) {
+                return; // تجاهل أخطاء Firebase
+            }
+            originalError.apply(console, args);
+        };
 
         let me = JSON.parse(localStorage.getItem("user"));
         if (!me) window.location.href = "login.html";
 
         document.getElementById("welcome").innerText = "مرحباً " + me.username;
 
-        // ------------------------------------------------------
-        // 🔥 تحميل تحديات الحساب - FIXED
-        // ------------------------------------------------------
+        // ========================================
+        // 🔔 نظام الإشعارات المصحح
+        // ========================================
+        function getAdminNotifications(userId) {
+            return firebase.database().ref('notifications').once('value')
+                .then(snapshot => {
+                    const notifications = [];
+                    snapshot.forEach(child => {
+                        const notif = child.val();
+                        
+                        if (notif && notif.targetType === 'all' || 
+                            (notif && notif.targetType === 'specific' && notif.targetUsers && notif.targetUsers.includes(String(userId)))) {
+                            
+                            if (!notif.readBy || !notif.readBy.includes(String(userId))) {
+                                notifications.push({
+                                    id: child.key,
+                                    type: 'admin_notification',
+                                    ...notif
+                                });
+                            }
+                        }
+                    });
+                    return notifications.sort((a, b) => b.timestamp - a.timestamp);
+                })
+                .catch(err => {
+                    // تجاهل أخطاء الأذونات بصمت
+                    return [];
+                });
+        }
+
+        // ✅ فتح مركز الإشعارات
+        function openNotificationsCenter() {
+            getUser(me.id).then(user => {
+                const pending = (user.pending || []).map(String);
+                
+                return getAllUsers().then(allUsers => {
+                    const friendRequests = pending.map(senderId => {
+                        const sender = allUsers.find(u => String(u.id) === senderId);
+                        return sender ? {
+                            type: 'friend_request',
+                            from: sender
+                        } : null;
+                    }).filter(n => n);
+
+                    return getAdminNotifications(me.id).then(adminNotifications => {
+                        return { friendRequests, adminNotifications };
+                    });
+                });
+            }).then(({friendRequests, adminNotifications}) => {
+                const total = friendRequests.length + adminNotifications.length;
+
+                if (total === 0) {
+                    alert('📭 لا توجد إشعارات جديدة!');
+                    return;
+                }
+
+                let notificationsHTML = '';
+
+                // طلبات الصداقة
+                if (friendRequests.length > 0) {
+                    notificationsHTML += `<div style="margin-bottom: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 18px;">
+                            <i class="fas fa-user-plus"></i> طلبات الصداقة (${friendRequests.length})
+                        </h3>`;
+                    
+                    friendRequests.forEach(notif => {
+                        notificationsHTML += `
+                            <div style="padding: 15px; margin-bottom: 10px; background: #f8f9fa; border-radius: 10px; border-right: 5px solid #4cc9f0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="flex: 1;">
+                                        <strong>${notif.from.username}</strong>
+                                        <p style="color: #666; margin: 5px 0;">يريد إضافتك كصديق</p>
+                                    </div>
+                                    <div style="display: flex; gap: 8px;">
+                                        <button onclick="acceptFriend('${notif.from.id}'); closeNotificationsModal();" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                            ✅ قبول
+                                        </button>
+                                        <button onclick="rejectFriend('${notif.from.id}'); closeNotificationsModal();" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                            ❌ رفض
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    notificationsHTML += `</div>`;
+                }
+
+                // إشعارات الأدمن
+                if (adminNotifications.length > 0) {
+                    notificationsHTML += `<div style="margin-bottom: 20px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px; font-size: 18px;">
+                            <i class="fas fa-bell"></i> إشعارات الإدارة (${adminNotifications.length})
+                        </h3>`;
+                    
+                    adminNotifications.forEach(notif => {
+                        const time = new Date(notif.timestamp).toLocaleString('ar-SA');
+                        notificationsHTML += `
+                            <div style="padding: 15px; margin-bottom: 10px; background: #fff3cd; border-radius: 10px; border-right: 5px solid #f8961e;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                    <strong style="font-size: 16px; color: #856404;">${notif.title}</strong>
+                                    <button onclick="markNotificationAsRead('${notif.id}')" style="padding: 5px 10px; background: #f8961e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                                        ✓ تم القراءة
+                                    </button>
+                                </div>
+                                <p style="color: #856404; margin-bottom: 8px;">${notif.message}</p>
+                                <small style="color: #999; font-size: 12px;">${time}</small>
+                            </div>
+                        `;
+                    });
+                    notificationsHTML += `</div>`;
+                }
+
+                const modalHTML = `
+                    <div id="notificationsModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                        <div style="background: white; border-radius: 15px; padding: 30px; max-width: 700px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                                <h2 style="color: #667eea; margin: 0;">
+                                    <i class="fas fa-bell"></i> مركز الإشعارات
+                                </h2>
+                                <button onclick="closeNotificationsModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">
+                                    ×
+                                </button>
+                            </div>
+                            <div style="color: #666; margin-bottom: 20px; text-align: center;">
+                                لديك ${total} إشعار جديد
+                            </div>
+                            <div>${notificationsHTML}</div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+            }).catch(err => {
+                console.error('خطأ:', err);
+                alert('حدث خطأ في جلب الإشعارات!');
+            });
+        }
+
+        // ✅ إغلاق Modal مع تحديث
+        function closeNotificationsModal() {
+            const modal = document.getElementById('notificationsModal');
+            if (modal) {
+                modal.remove();
+            }
+            // ✅ تحديث الشارة فوراً بعد الإغلاق
+            setTimeout(() => {
+                updateNotificationBadge();
+                loadData(); // تحديث البيانات أيضاً
+            }, 300);
+        }
+
+        // ✅ تحديد كمقروء مع إغلاق وتحديث
+        function markNotificationAsRead(notificationId) {
+            // إزالة الإشعار من الواجهة مباشرة بدون انتظار Firebase
+            const targetElement = event.target.closest('div[style*="padding: 15px"]');
+            if (targetElement) {
+                targetElement.remove();
+            }
+            
+            // تحديث الشارة
+            updateNotificationBadge();
+            
+            // إذا لم يبقى إشعارات، أغلق النافذة
+            const modal = document.getElementById('notificationsModal');
+            if (modal) {
+                const remainingNotifs = modal.querySelectorAll('div[style*="padding: 15px"]').length;
+                if (remainingNotifs === 0) {
+                    closeNotificationsModal();
+                }
+            }
+            
+            // محاولة التحديث في Firebase بصمت (بدون انتظار أو عرض أخطاء)
+            try {
+                firebase.database().ref('notifications/' + notificationId).once('value')
+                    .then(snapshot => {
+                        const notif = snapshot.val();
+                        if (!notif) return;
+                        
+                        const readBy = notif.readBy || [];
+                        
+                        if (!readBy.includes(String(me.id))) {
+                            readBy.push(String(me.id));
+                        }
+                        
+                        return firebase.database().ref('notifications/' + notificationId).update({ readBy });
+                    })
+                    .catch(() => {}); // تجاهل كل الأخطاء
+            } catch (e) {
+                // تجاهل كل الأخطاء
+            }
+        }
+
+        // ✅ تحديث شارة الإشعارات
+        function updateNotificationBadge() {
+            getUser(me.id).then(user => {
+                if (!user) return;
+                const pending = (user.pending || []).length;
+                
+                return getAdminNotifications(me.id).then(adminNotifs => {
+                    const total = pending + (adminNotifs ? adminNotifs.length : 0);
+                    
+                    const badge = document.getElementById('notificationBadge');
+                    if (badge) {
+                        if (total > 0) {
+                            badge.textContent = total;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                });
+            }).catch(err => {
+                // تجاهل الأخطاء بصمت
+            });
+        }
+
+        // ========================================
+        // التحديات والأصدقاء (نفس الكود القديم)
+        // ========================================
         function loadMathChallenges(users) {
             let container = $("#mathChallengesList").html("");
             let friends = (me.friends || []).map(String);
@@ -667,13 +939,10 @@
                 let friend = users.find(u => String(u.id) === fid);
                 if (!friend) return;
 
-                // ✅ البحث في ألعابي وألعابه
                 let myGame = (me.games || []).find(g => String(g.opponentId) === String(fid));
-                let hisGame = (friend.games || []).find(g => String(g.opponentId) === String(me.id));
 
                 let button = "";
 
-                // ✅ الحالة 1: لا توجد لعبة بيننا أو اللعبة منتهية
                 if (!myGame || myGame.status === "finished") {
                     button = `
                         <button class="action-btn send" onclick="sendGame('${fid}')">
@@ -681,7 +950,6 @@
                         </button>
                     `;
                 }
-                // ✅ الحالة 2: أنا أرسلت له التحدي (pending في ألعابي)
                 else if (myGame && myGame.status === "pending") {
                     button = `
                         <button class="action-btn view" disabled style="opacity:0.7;">
@@ -693,7 +961,6 @@
                         </button>
                     `;
                 }
-                // ✅ الحالة 3: هو أرسل لي التحدي (invited في ألعابي)
                 else if (myGame && myGame.status === "invited") {
                     button = `
                         <button class="action-btn accept" onclick="acceptGame('${myGame.id}', '${fid}')">
@@ -704,7 +971,6 @@
                         </button>
                     `;
                 }
-                // ✅ الحالة 4: اللعبة جارية
                 else if (myGame && myGame.status === "playing") {
                     button = `
                         <button class="action-btn view" onclick="startGame('${myGame.id}', '${fid}')">
@@ -729,7 +995,6 @@
                 `);
             });
 
-            // ✅ إذا ما في أصدقاء (مش متوقع الوصول هنا)
             if (container.children().length === 0) {
                 container.html(`
                     <div class="empty-state">
@@ -740,18 +1005,13 @@
             }
         }
 
-        // ------------------------------------------------------
-        // 🔥 إرسال تحدي لعبة - FIXED
-        // ------------------------------------------------------
         function sendGame(friendId) {
             let gameId = "g" + Date.now();
 
-            // ✅ حذف أي لعبة قديمة منتهية مع هذا الصديق
             me.games = (me.games || []).filter(g => 
                 !(String(g.opponentId) === String(friendId) && g.status === "finished")
             );
 
-            // اللعبة في ألعابي (أنا المرسل)
             let myGame = {
                 id: gameId,
                 opponentId: String(friendId),
@@ -759,7 +1019,6 @@
                 time: Date.now()
             };
 
-            // اللعبة في ألعابه (هو المستقبل)
             let hisGame = {
                 id: gameId,
                 opponentId: String(me.id),
@@ -767,91 +1026,48 @@
                 time: Date.now()
             };
 
-            // حفظ عندي
             me.games.push(myGame);
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    // حفظ عنده
-                    $.get(API_URL + "/" + friendId, function(fr) {
-                        // ✅ حذف أي لعبة قديمة منتهية معي
-                        fr.games = (fr.games || []).filter(g => 
-                            !(String(g.opponentId) === String(me.id) && g.status === "finished")
-                        );
-                        
-                        fr.games.push(hisGame);
+            updateUser(me.id, { games: me.games }).then(() => {
+                getUser(friendId).then(fr => {
+                    fr.games = (fr.games || []).filter(g => 
+                        !(String(g.opponentId) === String(me.id) && g.status === "finished")
+                    );
+                    
+                    fr.games.push(hisGame);
 
-                        $.ajax({
-                            url: API_URL + "/" + friendId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(fr),
-                            success: function() {
-                                alert("تم إرسال التحدي!");
-                                loadData();
-                            }
-                        });
+                    updateUser(friendId, { games: fr.games }).then(() => {
+                        alert("تم إرسال التحدي!");
+                        loadData();
                     });
-                }
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 قبول التحدي - NEW
-        // ------------------------------------------------------
         function acceptGame(gameId, opponentId) {
-            // تحديث حالة اللعبة عندي
             let myGame = me.games.find(g => g.id === gameId);
             if (!myGame) return;
 
             myGame.status = "playing";
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    // تحديث حالة اللعبة عند الخصم
-                    $.get(API_URL + "/" + opponentId, function(opponent) {
-                        let hisGame = opponent.games.find(g => g.id === gameId);
-                        if (hisGame) {
-                            hisGame.status = "playing";
-                        }
+            updateUser(me.id, { games: me.games }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    let hisGame = (opponent.games || []).find(g => g.id === gameId);
+                    if (hisGame) {
+                        hisGame.status = "playing";
+                    }
 
-                        $.ajax({
-                            url: API_URL + "/" + opponentId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(opponent),
-                            success: function() {
-                                // بدء اللعبة مباشرة
-                                startGame(gameId, opponentId);
-                            }
-                        });
+                    updateUser(opponentId, { games: opponent.games }).then(() => {
+                        startGame(gameId, opponentId);
                     });
-                }
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 بدء اللعبة
-        // ------------------------------------------------------
         function startGame(gameId, opId) {
             window.location.href = `game-math.html?game=${gameId}&op=${opId}`;
         }
 
-        // ======================================================
-        // 🎯 WORD GAME CHALLENGES - دوال تحديات الكلمات
-        // ======================================================
-
-        // ------------------------------------------------------
-        // 🔥 تحميل تحديات الكلمات
-        // ------------------------------------------------------
         function loadWordChallenges(users) {
             let container = $("#wordChallengesList").html("");
             let friends = (me.friends || []).map(String);
@@ -870,12 +1086,10 @@
                 let friend = users.find(u => String(u.id) === fid);
                 if (!friend) return;
 
-                // ✅ البحث في ألعاب الكلمات
                 let myGame = (me.wordGames || []).find(g => String(g.opponentId) === String(fid));
 
                 let button = "";
 
-                // ✅ الحالة 1: لا توجد لعبة بيننا أو اللعبة منتهية
                 if (!myGame || myGame.status === "finished") {
                     button = `
                         <button class="action-btn send" onclick="sendWordGame('${fid}')">
@@ -883,7 +1097,6 @@
                         </button>
                     `;
                 }
-                // ✅ الحالة 2: أنا أرسلت له التحدي (pending في ألعابي)
                 else if (myGame && myGame.status === "pending") {
                     button = `
                         <button class="action-btn view" disabled style="opacity:0.7;">
@@ -895,7 +1108,6 @@
                         </button>
                     `;
                 }
-                // ✅ الحالة 3: هو أرسل لي التحدي (invited في ألعابي)
                 else if (myGame && myGame.status === "invited") {
                     button = `
                         <button class="action-btn accept" onclick="acceptWordGame('${myGame.id}', '${fid}')">
@@ -906,7 +1118,6 @@
                         </button>
                     `;
                 }
-                // ✅ الحالة 4: اللعبة جارية
                 else if (myGame && myGame.status === "playing") {
                     button = `
                         <button class="action-btn view" onclick="startWordGame('${myGame.id}', '${fid}')">
@@ -931,7 +1142,6 @@
                 `);
             });
 
-            // ✅ إذا ما في أصدقاء
             if (container.children().length === 0) {
                 container.html(`
                     <div class="empty-state">
@@ -942,18 +1152,13 @@
             }
         }
 
-        // ------------------------------------------------------
-        // 🔥 إرسال تحدي كلمات
-        // ------------------------------------------------------
         function sendWordGame(friendId) {
             let gameId = "w" + Date.now();
 
-            // ✅ حذف أي لعبة قديمة منتهية مع هذا الصديق
             me.wordGames = (me.wordGames || []).filter(g => 
                 !(String(g.opponentId) === String(friendId) && g.status === "finished")
             );
 
-            // اللعبة في ألعابي (أنا المرسل)
             let myGame = {
                 id: gameId,
                 opponentId: String(friendId),
@@ -961,7 +1166,6 @@
                 time: Date.now()
             };
 
-            // اللعبة في ألعابه (هو المستقبل)
             let hisGame = {
                 id: gameId,
                 opponentId: String(me.id),
@@ -969,221 +1173,214 @@
                 time: Date.now()
             };
 
-            // حفظ عندي
             me.wordGames.push(myGame);
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    // حفظ عنده
-                    $.get(API_URL + "/" + friendId, function(fr) {
-                        fr.wordGames = (fr.wordGames || []).filter(g => 
-                            !(String(g.opponentId) === String(me.id) && g.status === "finished")
-                        );
-                        
-                        fr.wordGames.push(hisGame);
+            updateUser(me.id, { wordGames: me.wordGames }).then(() => {
+                getUser(friendId).then(fr => {
+                    fr.wordGames = (fr.wordGames || []).filter(g => 
+                        !(String(g.opponentId) === String(me.id) && g.status === "finished")
+                    );
+                    
+                    fr.wordGames.push(hisGame);
 
-                        $.ajax({
-                            url: API_URL + "/" + friendId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(fr),
-                            success: function() {
-                                alert("تم إرسال تحدي الكلمات!");
-                                loadData();
-                            }
-                        });
+                    updateUser(friendId, { wordGames: fr.wordGames }).then(() => {
+                        alert("تم إرسال تحدي الكلمات!");
+                        loadData();
                     });
-                }
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 قبول تحدي كلمات
-        // ------------------------------------------------------
+
+
         function acceptWordGame(gameId, opponentId) {
-            let game = me.wordGames.find(g => g.id === gameId);
+            let game = (me.wordGames || []).find(g => g.id === gameId);
             if (!game) return;
 
             game.status = "playing";
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    $.get(API_URL + "/" + opponentId, function(opponent) {
-                        let opGame = opponent.wordGames.find(g => g.id === gameId);
-                        if (opGame) {
-                            opGame.status = "playing";
-                        }
+            updateUser(me.id, { wordGames: me.wordGames }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    let opGame = (opponent.wordGames || []).find(g => g.id === gameId);
+                    if (opGame) {
+                        opGame.status = "playing";
+                    }
 
-                        $.ajax({
-                            url: API_URL + "/" + opponentId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(opponent),
-                            success: function() {
-                                location.href = "game-words.html?game=" + gameId + "&op=" + opponentId;
-                            }
-                        });
+                    updateUser(opponentId, { wordGames: opponent.wordGames }).then(() => {
+                        location.href = "game-words.html?game=" + gameId + "&op=" + opponentId;
                     });
-                }
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 بدء لعبة كلمات
-        // ------------------------------------------------------
         function startWordGame(gameId, opponentId) {
             location.href = "game-words.html?game=" + gameId + "&op=" + opponentId;
         }
 
-        // ------------------------------------------------------
-        // 🔥 إلغاء تحدي كلمات (للمرسل فقط)
-        // ------------------------------------------------------
-        function cancelWordGame(gameId, opponentId) {
-            if (!confirm("هل تريد إلغاء التحدي؟")) return;
+        function loadEggWarsChallenges(users) {
+            let container = $("#eggWarsChallengesList").html("");
+            let friends = (me.friends || []).map(String);
 
-            me.wordGames = (me.wordGames || []).filter(g => g.id !== gameId);
+            if (friends.length === 0) {
+                container.html(`
+                    <div class="empty-state">
+                        <i class="fas fa-gamepad"></i>
+                        <p>لا يوجد أصدقاء لبدء التحديات</p>
+                    </div>
+                `);
+                return;
+            }
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    $.get(API_URL + "/" + opponentId, function(opponent) {
-                        opponent.wordGames = (opponent.wordGames || []).filter(g => g.id !== gameId);
+            friends.forEach(fid => {
+                let friend = users.find(u => String(u.id) === fid);
+                if (!friend) return;
 
-                        $.ajax({
-                            url: API_URL + "/" + opponentId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(opponent),
-                            success: function() {
-                                alert("تم إلغاء تحدي الكلمات");
-                                loadData();
-                            }
-                        });
-                    });
+                let myGame = (me.eggWarsGames || []).find(g => String(g.opponentId) === String(fid));
+
+                let button = "";
+
+                if (!myGame || myGame.status === "finished") {
+                    button = `
+                        <button class="action-btn send" onclick="sendEggWars('${fid}')">
+                            🥚 تحدي حرب البيض
+                        </button>
+                    `;
                 }
+                else if (myGame && myGame.status === "pending") {
+                    button = `
+                        <button class="action-btn view" disabled style="opacity:0.7;">
+                            ⏳ انتظار الموافقة
+                        </button>
+                        <button class="action-btn reject" onclick="cancelEggWars('${myGame.id}', '${fid}')">
+                            <i class="fas fa-times"></i>
+                            إلغاء
+                        </button>
+                    `;
+                }
+                else if (myGame && myGame.status === "invited") {
+                    button = `
+                        <button class="action-btn accept" onclick="acceptEggWars('${myGame.id}', '${fid}')">
+                            ✅ قبول
+                        </button>
+                        <button class="action-btn reject" onclick="rejectEggWars('${myGame.id}', '${fid}')">
+                            ❌ رفض
+                        </button>
+                    `;
+                }
+                else if (myGame && myGame.status === "playing") {
+                    button = `
+                        <button class="action-btn view" onclick="window.location.href='egg-wars.html?game=${myGame.id}&op=${fid}'">
+                            ▶️ متابعة اللعبة
+                        </button>
+                    `;
+                }
+
+                container.append(`
+                    <div class="user-card">
+                        <div class="user-info">
+                            <img class="avatar" src="${friend.avatar || 'https://via.placeholder.com/50'}">
+                            <div class="user-details">
+                                <h3>${friend.username}</h3>
+                                <p>${friend.email}</p>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            ${button}
+                        </div>
+                    </div>
+                `);
+            });
+
+            if (container.children().length === 0) {
+                container.html(`
+                    <div class="empty-state">
+                        <i class="fas fa-gamepad"></i>
+                        <p>لا توجد تحديات</p>
+                    </div>
+                `);
+            }
+        }
+
+        function sendEggWars(friendId) {
+            let gameId = "e" + Date.now();
+
+            me.eggWarsGames = (me.eggWarsGames || []).filter(g => 
+                !(String(g.opponentId) === String(friendId) && g.status === "finished")
+            );
+
+            let myGame = {
+                id: gameId,
+                opponentId: String(friendId),
+                status: "pending",
+                time: Date.now()
+            };
+
+            let hisGame = {
+                id: gameId,
+                opponentId: String(me.id),
+                status: "invited",
+                time: Date.now()
+            };
+
+            me.eggWarsGames.push(myGame);
+
+            updateUser(me.id, { eggWarsGames: me.eggWarsGames }).then(() => {
+                getUser(friendId).then(fr => {
+                    fr.eggWarsGames = (fr.eggWarsGames || []).filter(g => 
+                        !(String(g.opponentId) === String(me.id) && g.status === "finished")
+                    );
+                    
+                    fr.eggWarsGames.push(hisGame);
+
+                    updateUser(friendId, { eggWarsGames: fr.eggWarsGames }).then(() => {
+                        alert("تم إرسال تحدي حرب البيض!");
+                        loadData();
+                    });
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 رفض تحدي كلمات (للمستقبل فقط)
-        // ------------------------------------------------------
-        function rejectWordGame(gameId, opponentId) {
-            if (!confirm("هل تريد رفض التحدي؟")) return;
+        function acceptEggWars(gameId, opponentId) {
+            let myGame = me.eggWarsGames.find(g => g.id === gameId);
+            if (!myGame) return;
 
-            me.wordGames = (me.wordGames || []).filter(g => g.id !== gameId);
+            myGame.status = "playing";
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    $.get(API_URL + "/" + opponentId, function(opponent) {
-                        opponent.wordGames = (opponent.wordGames || []).filter(g => g.id !== gameId);
+            updateUser(me.id, { eggWarsGames: me.eggWarsGames }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    let hisGame = (opponent.eggWarsGames || []).find(g => g.id === gameId);
+                    if (hisGame) {
+                        hisGame.status = "playing";
+                    }
 
-                        $.ajax({
-                            url: API_URL + "/" + opponentId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(opponent),
-                            success: function() {
-                                alert("تم رفض تحدي الكلمات");
-                                loadData();
-                            }
-                        });
+                    updateUser(opponentId, { eggWarsGames: opponent.eggWarsGames }).then(() => {
+                        window.location.href = `egg-wars.html?game=${gameId}&op=${opponentId}`;
                     });
-                }
+                });
             });
         }
 
-        // ======================================================
-        // END OF WORD GAME FUNCTIONS
-        // ======================================================
+        function rejectEggWars(gameId, opponentId) {
+            me.eggWarsGames = me.eggWarsGames.filter(g => g.id !== gameId);
 
-        // ------------------------------------------------------
-        // 🔥 إلغاء التحدي (للمرسل فقط) - NEW
-        // ------------------------------------------------------
-        function cancelGame(gameId, opponentId) {
-            if (!confirm("هل تريد إلغاء التحدي؟")) return;
-
-            // ✅ حذف اللعبة من عندي
-            me.games = (me.games || []).filter(g => g.id !== gameId);
-
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    // ✅ حذف اللعبة من عند الخصم
-                    $.get(API_URL + "/" + opponentId, function(opponent) {
-                        opponent.games = (opponent.games || []).filter(g => g.id !== gameId);
-
-                        $.ajax({
-                            url: API_URL + "/" + opponentId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(opponent),
-                            success: function() {
-                                alert("تم إلغاء التحدي");
-                                loadData();
-                            }
-                        });
+            updateUser(me.id, { eggWarsGames: me.eggWarsGames }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    opponent.eggWarsGames = (opponent.eggWarsGames || []).filter(g => g.id !== gameId);
+                    updateUser(opponentId, { eggWarsGames: opponent.eggWarsGames }).then(() => {
+                        alert("تم رفض التحدي");
+                        loadData();
                     });
-                }
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 رفض التحدي (للمستقبل فقط) - NEW
-        // ------------------------------------------------------
-        function rejectGame(gameId, opponentId) {
-            if (!confirm("هل تريد رفض التحدي؟")) return;
-
-            // ✅ حذف اللعبة من عندي
-            me.games = (me.games || []).filter(g => g.id !== gameId);
-
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify(me),
-                success: function () {
-                    // ✅ حذف اللعبة من عند الخصم
-                    $.get(API_URL + "/" + opponentId, function(opponent) {
-                        opponent.games = (opponent.games || []).filter(g => g.id !== gameId);
-
-                        $.ajax({
-                            url: API_URL + "/" + opponentId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify(opponent),
-                            success: function() {
-                                alert("تم رفض التحدي");
-                                loadData();
-                            }
-                        });
-                    });
-                }
-            });
+        function cancelEggWars(gameId, opponentId) {
+            if (!confirm('هل أنت متأكد من إلغاء التحدي؟')) return;
+            rejectEggWars(gameId, opponentId);
         }
 
-        // ------------------------------------------------------
-        // 🔥 تحميل البيانات الرئيسية
-        // ------------------------------------------------------
         function loadData() {
-            $.get(API_URL, function(users) {
+            getAllUsers().then(users => {
                 users.forEach(u => u.id = String(u.id));
 
                 me = users.find(u => u.id === String(me.id));
@@ -1194,21 +1391,137 @@
                 loadSuggestions(users);
                 loadFriends(users);
                 loadMathChallenges(users);
-                loadWordChallenges(users); // ✅ تحميل تحديات الكلمات
+                loadEggWarsChallenges(users);
+                loadWordChallenges(users);
+                loadEggWarsChallenges(users);
+                loadAdminMessages(users);
 
                 $("#pendingCount").text(me.pending?.length || 0);
+                updateNotificationBadge();
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 اقتراحات الأصدقاء
-        // ------------------------------------------------------
+        // ✅ تحميل رسائل الأدمن
+        // ✅ تحميل رسائل الأدمن - عرض البانر فقط
+        function loadAdminMessages(users) {
+            const adminEmail = 'byahmad338@gmail.com';
+            const admin = users.find(u => u.email === adminEmail);
+            
+            if (!admin) {
+                $("#adminMessagesBanner").hide();
+                return;
+            }
+
+            const adminId = String(admin.id);
+            window.adminId = adminId; // حفظ ID الأدمن للاستخدام لاحقاً
+            const myMessages = me.messages || [];
+            
+            // فلترة رسائل الأدمن غير المقروءة فقط
+            const adminMessages = myMessages.filter(m => 
+                m.fromAdmin && 
+                String(m.from) === adminId && 
+                String(m.to) === String(me.id) &&
+                !m.adminRead  // ✅ فقط الرسائل غير المقروءة
+            );
+
+            if (adminMessages.length === 0) {
+                $("#adminMessagesBanner").hide();
+                return;
+            }
+
+            // ترتيب الرسائل من الأحدث للأقدم
+            adminMessages.sort((a, b) => b.time - a.time);
+            
+            // حفظ الرسائل للاستخدام في المودال
+            window.adminMessages = adminMessages;
+
+            // إظهار البانر
+            $("#adminMessagesBanner").show();
+            $("#adminMsgCount").text(adminMessages.length);
+        }
+
+        // ✅ فتح مودال رسائل الأدمن (قراءة فقط)
+        function openAdminMessagesModal() {
+            if (!window.adminMessages || window.adminMessages.length === 0) return;
+
+            let messagesHTML = '';
+            
+            window.adminMessages.forEach(msg => {
+                const time = new Date(msg.time).toLocaleString('ar-EG', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                messagesHTML += `
+                    <div style="background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%); padding: 20px; border-radius: 12px; margin-bottom: 15px; border-right: 5px solid #f8961e; cursor: pointer;" onclick="openChatWithAdmin('${window.adminId}', true)">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <span style="background: #f8961e; color: white; padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: bold;">
+                                👑 رسالة من الإدارة
+                            </span>
+                            <span style="color: #856404; font-size: 12px; margin-right: auto;">
+                                ${time}
+                            </span>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                            <p style="color: #333; margin: 0; line-height: 1.6; font-size: 15px;">${msg.text}</p>
+                        </div>
+                        <div style="margin-top: 12px; text-align: center; color: #856404; font-size: 13px; font-weight: 600;">
+                            <i class="fas fa-eye"></i> اضغط لعرض في الشات
+                        </div>
+                    </div>
+                `;
+            });
+
+            const modalHTML = `
+                <div id="adminMessagesModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; animation: fadeIn 0.3s ease;">
+                    <div style="background: white; border-radius: 15px; padding: 30px; max-width: 700px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
+                            <h2 style="color: #f8961e; margin: 0; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 32px;">👑</span>
+                                رسائل الإدارة
+                            </h2>
+                            <button onclick="closeAdminMessagesModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666; transition: all 0.3s;">
+                                ×
+                            </button>
+                        </div>
+                        <div style="color: #666; margin-bottom: 20px; text-align: center; background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                            لديك ${window.adminMessages.length} رسالة من الإدارة - اضغط على أي رسالة لعرضها في الشات
+                        </div>
+                        <div>${messagesHTML}</div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        // ✅ إغلاق مودال رسائل الأدمن
+        function closeAdminMessagesModal() {
+            const modal = document.getElementById('adminMessagesModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // ✅ فتح محادثة مع الأدمن (قراءة فقط)
+        function openChatWithAdmin(adminId, readOnly = false) {
+            if (readOnly) {
+                window.location.href = `chat.html?to=${adminId}&readonly=true`;
+            } else {
+                window.location.href = `chat.html?to=${adminId}`;
+            }
+        }
+
         function loadSuggestions(users) {
             let container = $("#suggestions").html("");
 
             let myId = String(me.id);
             let myFriends = (me.friends || []).map(String);
             let myPending = (me.pending || []).map(String);
+            let adminEmail = 'byahmad338@gmail.com';
 
             let hasSuggestions = false;
 
@@ -1216,6 +1529,7 @@
                 let uid = String(u.id);
 
                 if (uid === myId) return;
+                if (u.email === adminEmail) return;
                 if (myFriends.includes(uid)) return;
                 if (myPending.includes(uid)) return;
                 if ((u.pending || []).map(String).includes(myId)) return;
@@ -1248,9 +1562,6 @@
             }
         }
 
-        // ------------------------------------------------------
-        // 🔥 طلبات الصداقة
-        // ------------------------------------------------------
         function loadFriendRequests(users) {
             let container = $("#requestsList").html("");
             let pending = (me.pending || []).map(String);
@@ -1293,9 +1604,6 @@
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 الطلبات المرسلة
-        // ------------------------------------------------------
         function loadSentRequests(users) {
             let container = $("#sentRequestsList").html("");
 
@@ -1337,107 +1645,62 @@
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 إرسال طلب صداقة
-        // ------------------------------------------------------
         function sendRequest(targetId) {
-            $.get(API_URL + "/" + targetId, function(targetUser) {
+            getUser(targetId).then(targetUser => {
                 let pending = (targetUser.pending || []).map(String);
 
                 if (!pending.includes(String(me.id))) {
                     pending.push(String(me.id));
                 }
 
-                $.ajax({
-                    url: API_URL + "/" + targetId,
-                    method: "PUT",
-                    contentType: "application/json",
-                    data: JSON.stringify({ ...targetUser, pending }),
-                    success: function () {
-                        alert("تم إرسال طلب الصداقة!");
-                        loadData();
-                    }
+                updateUser(targetId, { pending: pending }).then(() => {
+                    alert("تم إرسال طلب الصداقة!");
+                    loadData();
                 });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 قبول صديق
-        // ------------------------------------------------------
         function acceptFriend(senderId) {
             senderId = String(senderId);
 
             let newPending = (me.pending || []).map(String).filter(id => id !== senderId);
             let newFriends = [...(me.friends || []).map(String), senderId];
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({ ...me, friends: newFriends, pending: newPending }),
-                success: function () {
-                    $.get(API_URL + "/" + senderId, function(u2) {
-                        let hisFriends = [...(u2.friends || []).map(String), String(me.id)];
+            updateUser(me.id, { friends: newFriends, pending: newPending }).then(() => {
+                getUser(senderId).then(u2 => {
+                    let hisFriends = [...(u2.friends || []).map(String), String(me.id)];
 
-                        $.ajax({
-                            url: API_URL + "/" + senderId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify({ ...u2, friends: hisFriends }),
-                            success: function () {
-                                alert("تم قبول الصداقة!");
-                                loadData();
-                            }
-                        });
-                    });
-                }
-            });
-        }
-
-        // ------------------------------------------------------
-        // 🔥 رفض طلب
-        // ------------------------------------------------------
-        function rejectFriend(senderId) {
-            senderId = String(senderId);
-            let newPending = (me.pending || []).map(String).filter(id => id !== senderId);
-
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({ ...me, pending: newPending }),
-                success: function () {
-                    alert("تم رفض الطلب");
-                    loadData();
-                }
-            });
-        }
-
-        // ------------------------------------------------------
-        // 🔥 إلغاء طلب مرسل
-        // ------------------------------------------------------
-        function cancelSentRequest(targetId) {
-            $.get(API_URL + "/" + targetId, function(user) {
-                let newPending = (user.pending || [])
-                    .map(String)
-                    .filter(id => id !== String(me.id));
-
-                $.ajax({
-                    url: API_URL + "/" + targetId,
-                    method: "PUT",
-                    contentType: "application/json",
-                    data: JSON.stringify({ ...user, pending: newPending }),
-                    success: function () {
-                        alert("تم إلغاء طلب الصداقة");
+                    updateUser(senderId, { friends: hisFriends }).then(() => {
+                        alert("تم قبول الصداقة!");
                         loadData();
-                    }
+                    });
                 });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 عرض الأصدقاء
-        // ------------------------------------------------------
+        function rejectFriend(senderId) {
+            senderId = String(senderId);
+            let newPending = (me.pending || []).map(String).filter(id => id !== senderId);
+
+            updateUser(me.id, { pending: newPending }).then(() => {
+                alert("تم رفض الطلب");
+                loadData();
+            });
+        }
+
+        function cancelSentRequest(targetId) {
+            getUser(targetId).then(user => {
+                let newPending = (user.pending || [])
+                    .map(String)
+                    .filter(id => id !== String(me.id));
+
+                updateUser(targetId, { pending: newPending }).then(() => {
+                    alert("تم إلغاء طلب الصداقة");
+                    loadData();
+                });
+            });
+        }
+
         function loadFriends(users) {
             let container = $("#friendsList").html("");
             let friends = (me.friends || []).map(String);
@@ -1475,6 +1738,7 @@
                                 <i class="fas fa-user"></i>
                                 عرض
                             </button>
+
                             <button class="action-btn view" onclick="openChat('${friend.id}')">
                                 <i class="fas fa-comments"></i>
                                 ${badgeHTML}
@@ -1490,9 +1754,6 @@
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 حساب الرسائل غير المقروءة
-        // ------------------------------------------------------
         function countUnread(friendId) {
             if (!me || !me.messages) return 0;
             
@@ -1501,150 +1762,69 @@
             return msgs.filter(m =>
                 String(m.from) === String(friendId) &&
                 String(m.to) === String(me.id) &&
-                m.seen === false
+                m.seen !== true
             ).length;
         }
 
-        // ------------------------------------------------------
-        // 🔥 حساب كل الرسائل غير المقروءة
-        // ------------------------------------------------------
-        function countAllUnreadMessages() {
-            if (!me || !me.messages) return 0;
-
-            let msgs = me.messages || [];
-
-            return msgs.filter(m =>
-                String(m.to) === String(me.id) &&
-                m.seen === false
-            ).length;
-        }
-
-        // ------------------------------------------------------
-        // 🔥 تحديث Badge الرسائل العام
-        // ------------------------------------------------------
-        function updateMessagesBadge() {
-            let count = countAllUnreadMessages();
-            let badge = $("#messagesBadge");
-
-            if (count > 0) {
-                badge.text(count);
-                badge.css('display', 'flex');
-            } else {
-                badge.hide();
-            }
-        }
-
-        // ------------------------------------------------------
-        // 🔥 إزالة صديق
-        // ------------------------------------------------------
         function removeFriend(fid) {
             fid = String(fid);
             let newFriends = (me.friends || []).map(String).filter(id => id !== fid);
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({ ...me, friends: newFriends }),
-                success: function () {
-                    $.get(API_URL + "/" + fid, function(other) {
-                        let hisNewFriends = (other.friends || []).map(String).filter(id => id !== String(me.id));
+            updateUser(me.id, { friends: newFriends }).then(() => {
+                getUser(fid).then(other => {
+                    let hisNewFriends = (other.friends || []).map(String).filter(id => id !== String(me.id));
 
-                        $.ajax({
-                            url: API_URL + "/" + fid,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify({ ...other, friends: hisNewFriends }),
-                            success: function () {
-                                alert("تمت إزالة الصديق بنجاح");
-                                loadData();
-                            }
-                        });
+                    updateUser(fid, { friends: hisNewFriends }).then(() => {
+                        alert("تمت إزالة الصديق بنجاح");
+                        loadData();
                     });
-                }
+                });
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 فحص الرسائل الجديدة
-        // ------------------------------------------------------
-        let lastMessageCheck = 0;
-
-        function checkNewMessages() {
-            $.get(API_URL + "/" + me.id, function(freshMe) {
-                if (!freshMe || !freshMe.messages) return;
-
-                let msgs = freshMe.messages || [];
-                if (msgs.length === 0) {
-                    lastMessageCheck = 0;
-                    return;
-                }
-
-                let latest = msgs[msgs.length - 1].time || 0;
-
-                if (latest > lastMessageCheck) {
-                    lastMessageCheck = latest;
-                    
-                    me = freshMe;
-                    localStorage.setItem("user", JSON.stringify(me));
-
-                    updateMessagesBadge();
-
-                    $.get(API_URL, function(users) {
-                        users.forEach(u => u.id = String(u.id));
-                        loadFriends(users);
-                        loadMathChallenges(users);
-                    });
-                }
-            });
-        }
-
-        setInterval(checkNewMessages, 3000);
-
-        // ------------------------------------------------------
-        // 🔥 البحث عن المستخدمين
-        // ------------------------------------------------------
         function searchUsers() {
             let text = $("#searchInput").val().trim();
+            let dropdown = $("#searchResultsDropdown");
 
             if (text === "") {
-                $("#searchSection").hide();
-                $("#searchResults").html("");
+                dropdown.removeClass('active').html("");
                 $("#searchBadge").hide();
                 return;
             }
 
-            $.get(API_URL, function(users) {
+            getAllUsers().then(users => {
                 users.forEach(u => u.id = String(u.id));
 
                 let myId = String(me.id);
                 let myFriends = (me.friends || []).map(String);
                 let myPending = (me.pending || []).map(String);
 
+                let adminEmail = 'byahmad338@gmail.com';
+                
                 let results = users.filter(u =>
                     u.username.toLowerCase().includes(text.toLowerCase()) &&
-                    u.id !== myId
+                    u.id !== myId &&
+                    u.email !== adminEmail
                 );
 
                 let badge = $("#searchBadge");
 
                 if (results.length > 0) {
-                    badge.text(results.length);
-                    badge.css('display', 'flex');
+                    badge.text(results.length).css('display', 'flex');
                 } else {
                     badge.hide();
                 }
 
-                $("#searchSection").show();
-                let container = $("#searchResults").html("");
+                dropdown.html("");
 
                 if (results.length === 0) {
-                    container.html(`
-                        <div class="empty-state">
-                            <i class="fas fa-search"></i>
+                    dropdown.html(`
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            <i class="fas fa-search" style="font-size: 32px; margin-bottom: 10px; opacity: 0.3;"></i>
                             <p>لا يوجد نتائج مطابقة</p>
                         </div>
                     `);
+                    dropdown.addClass('active');
                     return;
                 }
 
@@ -1653,64 +1833,56 @@
                     let isPending = myPending.includes(u.id);
                     let sent = (u.pending || []).map(String).includes(myId);
 
-                    let btn = "";
+                    let actionHTML = "";
 
                     if (isFriend) {
-                        btn = `<button class="action-btn view" onclick="openChat('${u.id}')">
-                                <i class="fas fa-comments"></i> دردشة
-                            </button>`;
+                        actionHTML = `<button class="search-result-action" onclick="openChat('${u.id}'); closeSearchDropdown();">دردشة</button>`;
                     }
                     else if (isPending) {
-                        btn = `<span class="status-label status-pending">بانتظار الموافقة</span>`;
+                        actionHTML = `<span style="font-size: 11px; color: #856404; background: #fff3cd; padding: 4px 8px; border-radius: 6px;">معلق</span>`;
                     }
                     else if (sent) {
-                        btn = `<span class="status-label status-sent">تم إرسال الطلب</span>`;
+                        actionHTML = `<span style="font-size: 11px; color: #0c5460; background: #d1ecf1; padding: 4px 8px; border-radius: 6px;">مرسل</span>`;
                     }
                     else {
-                        btn = `<button class="action-btn send" onclick="sendRequest('${u.id}')">
-                                <i class="fas fa-user-plus"></i> إضافة صديق
-                            </button>`;
+                        actionHTML = `<button class="search-result-action" onclick="sendRequest('${u.id}'); closeSearchDropdown();">إضافة</button>`;
                     }
 
-                    container.append(`
-                        <div class="user-card">
-                            <div class="user-info">
-                                <img class="avatar" src="${u.avatar || 'https://via.placeholder.com/50'}">
-                                <div class="user-details">
-                                    <h3>${u.username}</h3>
-                                    <p>${u.email}</p>
-                                </div>
+                    dropdown.append(`
+                        <div class="search-result-item">
+                            <img class="search-result-avatar" src="${u.avatar || 'https://via.placeholder.com/40'}" alt="${u.username}">
+                            <div class="search-result-info">
+                                <div class="search-result-name">${u.username}</div>
+                                <div class="search-result-email">${u.email}</div>
                             </div>
-                            <div class="action-buttons">${btn}</div>
+                            ${actionHTML}
                         </div>
                     `);
                 });
+
+                dropdown.addClass('active');
             });
         }
 
-        // ------------------------------------------------------
-        // 🔥 إغلاق البحث
-        // ------------------------------------------------------
-        function closeSearch() {
+        function closeSearchDropdown() {
+            $("#searchResultsDropdown").removeClass('active').html("");
             $("#searchInput").val("");
-            $("#searchSection").hide();
-            $("#searchResults").html("");
             $("#searchBadge").hide();
         }
 
-        // ------------------------------------------------------
-        // 🔥 دوال التنقل
-        // ------------------------------------------------------
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.search-box').length) {
+                closeSearchDropdown();
+            }
+        });
+
+        // ✅ فتح المحادثة مباشرة في chat.html
         function openChat(id) {
             window.location.href = "chat.html?to=" + id;
         }
 
         function openFriend(id) {
             window.location.href = "friend.html?id=" + id;
-        }
-
-        function openMessages() {
-            alert("ميزة الرسائل قريباً!");
         }
 
         function goProfile() {
@@ -1722,11 +1894,12 @@
             window.location.href = "login.html";
         }
 
-        // ------------------------------------------------------
-        // 🚀 تشغيل التطبيق
-        // ------------------------------------------------------
+        // ✅ تحديث دوري
+        setInterval(() => {
+            updateNotificationBadge();
+        }, 10000);
+
         loadData();
-        updateMessagesBadge();
     </script>
 </body>
 </html>

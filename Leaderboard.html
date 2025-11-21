@@ -300,6 +300,23 @@
             transform: translateY(-2px);
         }
 
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+
+        .loading i {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header h1 {
@@ -372,7 +389,12 @@
         <div class="leaderboard-header">
             <div class="leaderboard-title">🏆 التصنيف العام</div>
         </div>
-        <div id="leaderboardList"></div>
+        <div id="leaderboardList">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>جاري تحميل البيانات...</p>
+            </div>
+        </div>
     </div>
 
     <!-- Back Button -->
@@ -384,9 +406,17 @@
     </center>
 </div>
 
+<!-- 🔥 Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+
+<!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
+<script src="firebase-data.js"></script>
+
 <script>
 
-const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+// 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 
 let me = JSON.parse(localStorage.getItem("user"));
 if (!me) location.href = "login.html";
@@ -440,10 +470,10 @@ function calculateStats(user) {
 }
 
 // =========================================
-// 🔥 تحميل البيانات
+// 🔥 تحميل البيانات من Firebase
 // =========================================
 function loadLeaderboard() {
-    $.get(API_URL, function(users) {
+    getAllUsers().then(users => {
         allUsers = users.map(u => {
             u.id = String(u.id);
             u.stats = calculateStats(u);
@@ -455,6 +485,14 @@ function loadLeaderboard() {
 
         displayLeaderboard();
         displayMyStats();
+    }).catch(err => {
+        console.error("خطأ في تحميل لوحة المتصدرين:", err);
+        $("#leaderboardList").html(`
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>حدث خطأ في تحميل البيانات</p>
+            </div>
+        `);
     });
 }
 
@@ -563,11 +601,11 @@ function filterLeaderboard(filter) {
 }
 
 // =========================================
-// 🚀 تشغيل
+// 🚀 تشغيل التطبيق
 // =========================================
 loadLeaderboard();
 
-// تحديث تلقائي كل 10 ثواني
+// تحديث تلقائي كل 10 ثواني من Firebase
 setInterval(loadLeaderboard, 10000);
 
 </script>

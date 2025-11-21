@@ -274,9 +274,17 @@
     <button class="secondary" onclick="location.href='index.html'">رجوع للصفحة الرئيسية</button>
 </div>
 
+<!-- 🔥 Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+
+<!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
+<script src="firebase-data.js"></script>
+
 <script>
 
-const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+// 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 const MAX_ROUNDS = 5;
 
 let me = JSON.parse(localStorage.getItem("user"));
@@ -291,12 +299,15 @@ let myGame;
 let currentRound = 1;
 
 // =========================================
-// 🔥 جلب بيانات الخصم
+// 🔥 جلب بيانات الخصم من Firebase
 // =========================================
-$.get(API_URL + "/" + opponentId, function(res){
+getUser(opponentId).then(res => {
     opponent = res;
     $("#opponentName").text(opponent.username);
     $("#opFinalName").text(opponent.username);
+}).catch(err => {
+    console.error("خطأ في جلب بيانات الخصم:", err);
+    $("#status").html("❌ خطأ في جلب بيانات الخصم!");
 });
 
 // =========================================
@@ -315,10 +326,10 @@ function generateQuestion() {
 }
 
 // =========================================
-// 🔥 تحميل بيانات اللعبة
+// 🔥 تحميل بيانات اللعبة من Firebase
 // =========================================
 function loadGameData(callback) {
-    $.get(API_URL + "/" + me.id, function(user){
+    getUser(me.id).then(user => {
         me = user;
         localStorage.setItem("user", JSON.stringify(me));
 
@@ -350,6 +361,9 @@ function loadGameData(callback) {
         }
 
         if (callback) callback();
+    }).catch(err => {
+        console.error("خطأ في تحميل بيانات اللعبة:", err);
+        $("#status").html("❌ خطأ في تحميل بيانات اللعبة!");
     });
 }
 
@@ -357,7 +371,7 @@ function loadGameData(callback) {
 // 🎮 عرض السؤال - FIXED
 // =========================================
 function renderQuestion() {
-    $.get(API_URL + "/" + opponentId, function(fr){
+    getUser(opponentId).then(fr => {
         let hisGame = fr.games?.find(g => g.id === gameId);
         
         // ✅ إذا ما في سؤال عند أي حد
@@ -397,6 +411,8 @@ function renderQuestion() {
             $("#myStatus").html("⏳ جاري الإجابة...");
             $("#submitBtn").prop("disabled", false);
         }
+    }).catch(err => {
+        console.error("خطأ في عرض السؤال:", err);
     });
 }
 
@@ -427,38 +443,31 @@ function sendAnswer() {
 }
 
 // =========================================
-// 🔥 حفظ اللعبة
+// 🔥 حفظ اللعبة في Firebase
 // =========================================
 function saveGame() {
-    $.ajax({
-        url: API_URL + "/" + me.id,
-        method: "PUT",
-        contentType: "application/json",
-        data: JSON.stringify(me),
-        success: function() {
-            $.get(API_URL + "/" + opponentId, function(fr){
-                fr.games = fr.games || [];
+    // حفظ بياناتي
+    updateUser(me.id, { games: me.games }).then(() => {
+        // تحديث بيانات الخصم
+        return getUser(opponentId);
+    }).then(fr => {
+        fr.games = fr.games || [];
 
-                let g2 = fr.games.find(g => g.id === gameId);
+        let g2 = fr.games.find(g => g.id === gameId);
 
-                if (g2) {
-                    g2.status = myGame.status;
-                    g2.round = myGame.round;
-                    g2.question = myGame.question;
-                    g2.answer = myGame.answer;
-                    g2.opponentAnswer = myGame.myAnswer;
-                    g2.opponentAnswerTime = myGame.myAnswerTime; // ⏱️ حفظ وقت إجابتي عنده
-                    g2.opponentScore = myGame.myScore;
-                }
-
-                $.ajax({
-                    url: API_URL + "/" + opponentId,
-                    method: "PUT",
-                    contentType: "application/json",
-                    data: JSON.stringify(fr)
-                });
-            });
+        if (g2) {
+            g2.status = myGame.status;
+            g2.round = myGame.round;
+            g2.question = myGame.question;
+            g2.answer = myGame.answer;
+            g2.opponentAnswer = myGame.myAnswer;
+            g2.opponentAnswerTime = myGame.myAnswerTime; // ⏱️ حفظ وقت إجابتي عنده
+            g2.opponentScore = myGame.myScore;
         }
+
+        return updateUser(opponentId, { games: fr.games });
+    }).catch(err => {
+        console.error("خطأ في حفظ اللعبة:", err);
     });
 }
 
@@ -466,7 +475,7 @@ function saveGame() {
 // 🎯 فحص الفائز - مع نظام السرعة
 // =========================================
 function checkWinner() {
-    $.get(API_URL + "/" + opponentId, function(fr){
+    getUser(opponentId).then(fr => {
         let hisGame = fr.games?.find(g => g.id === gameId);
         if (!hisGame) return;
 
@@ -557,6 +566,8 @@ function checkWinner() {
                 }, 800);
             }, 3000);
         }
+    }).catch(err => {
+        console.error("خطأ في فحص الفائز:", err);
     });
 }
 
@@ -578,7 +589,7 @@ function endGame() {
 // 🏆 عرض شاشة النهاية
 // =========================================
 function showGameOver() {
-    $.get(API_URL + "/" + opponentId, function(fr){
+    getUser(opponentId).then(fr => {
         let hisGame = fr.games?.find(g => g.id === gameId);
         
         let myScore = myGame.myScore || 0;
@@ -600,11 +611,13 @@ function showGameOver() {
         } else {
             resultBox.html("🤝 تعادل!").removeClass().addClass("final-result draw");
         }
+    }).catch(err => {
+        console.error("خطأ في عرض شاشة النهاية:", err);
     });
 }
 
 // ==============================
-// 🎯 تحديث تلقائي
+// 🎯 تحديث تلقائي من Firebase
 // ==============================
 setInterval(function(){
     if (myGame && myGame.status !== "finished") {

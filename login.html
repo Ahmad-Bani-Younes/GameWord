@@ -127,6 +127,12 @@
             transform: translateY(0);
         }
 
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .links {
             margin-top: 25px;
             text-align: center;
@@ -199,6 +205,26 @@
             font-size: 14px;
         }
 
+        .loading {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 480px) {
             .box {
                 padding: 30px 20px;
@@ -209,6 +235,13 @@
             }
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <!-- ملف الفايربيس الخاص بالمشروع -->
+    <script src="firebase.js"></script>
 </head>
 
 <body>
@@ -230,6 +263,11 @@
             </div>
             
             <button id="loginBtn">تسجيل الدخول</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: var(--gray);">جاري تسجيل الدخول...</p>
+            </div>
             
             <div class="links">
                 <a href="register.html">إنشاء حساب جديد</a>
@@ -253,35 +291,127 @@
         </div>
         
         <div class="footer">
-            © 2023 تطبيق التواصل الاجتماعي. جميع الحقوق محفوظة.
+            © 2025 تطبيق التواصل الاجتماعي. جميع الحقوق محفوظة.
         </div>
     </div>
 
     <script>
-        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+    // ========================================
+    // 🎯 قائمة بريد الأدمن
+    // ========================================
+    const ADMIN_EMAILS = [
+        'admin@gameword.com',
+        'byahmad338@gmail.com'  // ✅ أضف بريدك هنا
+    ];
 
-        $("#loginBtn").click(function () {
-            let email = $("#email").val().trim();
-            let pass  = $("#password").val().trim();
+    // ========================================
+    // 🔐 تسجيل الدخول عبر Firebase
+    // ========================================
+    $("#loginBtn").click(async function () {
+        let email = $("#email").val().trim();
+        let pass  = $("#password").val().trim();
 
-            $.get(API_URL, function (users) {
-                let user = users.find(u => u.email === email && u.password === pass);
+        if (!email || !pass) {
+            alert("الرجاء إدخال البريد الإلكتروني وكلمة المرور!");
+            return;
+        }
 
-                if (user) {
-                    localStorage.setItem("user", JSON.stringify(user));
-                    window.location.href = "index.html";
-                } else {
-                    alert("خطأ في البريد الإلكتروني أو كلمة المرور!");
-                }
-            });
-        });
-        
-        // إضافة إمكانية الضغط على Enter لتسجيل الدخول
-        $(document).keypress(function(event) {
-            if (event.which === 13) {
-                $("#loginBtn").click();
+        // إظهار Loading
+        $("#loginBtn").prop("disabled", true).text("جاري التحميل...");
+        $("#loading").show();
+
+        try {
+            // 1️⃣ تسجيل الدخول من Firebase Auth
+            let userCredential = await auth.signInWithEmailAndPassword(email, pass);
+            let user = userCredential.user;
+
+            // 2️⃣ جلب بيانات المستخدم من Realtime Database
+            let snapshot = await database.ref("users/" + user.uid).once("value");
+            let userData = snapshot.val();
+
+            if (!userData) {
+                // ✅ إنشاء بيانات تلقائياً إذا كانت ناقصة
+                console.log("⚠️ بيانات المستخدم غير موجودة، جاري الإنشاء...");
+                
+                userData = {
+                    id: user.uid,
+                    username: email.split('@')[0],
+                    email: email,
+                    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(email.split('@')[0])}&background=random`,
+                    friends: [],
+                    pending: [],
+                    sent: [],
+                    games: [],
+                    wordGames: [],
+                    createdAt: Date.now(),
+                    isAdmin: ADMIN_EMAILS.includes(email)
+                };
+                
+                // حفظ في Database
+                await database.ref("users/" + user.uid).set(userData);
+                console.log("✅ تم إنشاء البيانات تلقائياً");
             }
-        });
+
+            // 3️⃣ تخزين بيانات المستخدم في localStorage
+            localStorage.setItem("user", JSON.stringify({
+                id: user.uid,
+                username: userData.username,
+                email: userData.email,
+                avatar: userData.avatar,
+                friends: userData.friends || [],
+                pending: userData.pending || [],
+                sent: userData.sent || [],
+                games: userData.games || [],
+                isAdmin: userData.isAdmin || ADMIN_EMAILS.includes(userData.email)
+            }));
+
+            // 4️⃣ فحص إذا المستخدم أدمن
+            const isAdmin = ADMIN_EMAILS.includes(userData.email) || userData.isAdmin === true;
+
+            if (isAdmin) {
+                // ✅ توجيه للـ Dashboard
+                console.log("✅ مرحباً أدمن! توجيه للـ Dashboard...");
+                window.location.href = "admin-dashboard.html";
+            } else {
+                // ✅ توجيه للصفحة الرئيسية العادية
+                console.log("✅ مرحباً مستخدم! توجيه للصفحة الرئيسية...");
+                window.location.href = "index.html";
+            }
+
+        } catch (error) {
+            console.error("❌ خطأ:", error);
+
+            // إخفاء Loading
+            $("#loginBtn").prop("disabled", false).text("تسجيل الدخول");
+            $("#loading").hide();
+
+            if (error.code === "auth/user-not-found") {
+                alert("هذا البريد غير مسجل!");
+            }
+            else if (error.code === "auth/wrong-password") {
+                alert("كلمة المرور غير صحيحة!");
+            }
+            else if (error.code === "auth/invalid-email") {
+                alert("البريد الإلكتروني غير صالح!");
+            }
+            else if (error.code === "auth/invalid-credential") {
+                alert("البريد أو كلمة المرور غير صحيحة!");
+            }
+            else {
+                alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
+            }
+        }
+    });
+
+    // ========================================
+    // ⌨️ زر Enter
+    // ========================================
+    $(document).keypress(function(event) {
+        if (event.which === 13) {
+            $("#loginBtn").click();
+        }
+    });
     </script>
+
 </body>
 </html>

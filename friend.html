@@ -168,6 +168,12 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* Friends Section */
         .friends-section {
             background: white;
@@ -355,8 +361,16 @@
         </div>
     </div>
 
+    <!-- 🔥 Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+    
+    <!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
+    <script src="firebase-data.js"></script>
+
     <script>
-        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+        // 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 
         let params = new URLSearchParams(window.location.search);
         let friendId = params.get("id");
@@ -365,13 +379,20 @@
         if (!friendId) window.location.href = "index.html";
 
         let me = JSON.parse(localStorage.getItem("user"));
+        if (!me) window.location.href = "login.html";
 
+        // ===========================
+        // 1) تحميل بروفايل الصديق من Firebase
+        // ===========================
         function loadFriendProfile() {
-            $.get(API_URL + "/" + friendId, function(friend) {
+            getUser(friendId).then(friend => {
+                if (!friend) {
+                    alert("الصديق غير موجود!");
+                    window.location.href = "index.html";
+                    return;
+                }
 
-                // ===========================
-                // 1) بيانات البروفايل الأساسية
-                // ===========================
+                // عرض بيانات البروفايل
                 $("#profile").html(`
                     <div class="profile-section">
                         <img class="avatar-large" src="${friend.avatar || 'default.png'}" alt="صورة ${friend.username}">
@@ -386,30 +407,32 @@
                             </div>
                             
                             <div class="action-buttons">
+                                <button class="btn btn-primary" onclick="openChat('${friend.id}')">
+                                    <i class="fas fa-comments"></i>
+                                    مراسلة
+                                </button>
                                 <button class="btn btn-danger" onclick="removeFriend('${friend.id}')">
                                     <i class="fas fa-user-minus"></i>
                                     إزالة من أصدقائي
                                 </button>
-                                <button class="btn btn-danger" onclick="openChat('${friend.id}')">
-                                    <i class="fas fa-user-minus"></i>
-                                   مراسله
-                                </button>
-                               
                             </div>
                         </div>
                     </div>
                 `);
 
                 loadHisFriends(friend);
+            }).catch(err => {
+                console.error("خطأ في تحميل بروفايل الصديق:", err);
+                alert("حدث خطأ في تحميل البيانات!");
+                window.location.href = "index.html";
             });
         }
 
         // ==========================
-        // 2) عرض أصدقاء الشخص
+        // 2) عرض أصدقاء الشخص من Firebase
         // ==========================
         function loadHisFriends(friend) {
-            $.get(API_URL, function(users) {
-
+            getAllUsers().then(users => {
                 let container = $("#friendFriends");
                 container.html("");
 
@@ -427,7 +450,7 @@
                 friendsGrid.className = 'friends-grid';
 
                 friend.friends.forEach(fid => {
-                    let fr = users.find(u => u.id === String(fid));
+                    let fr = users.find(u => String(u.id) === String(fid));
                     if (!fr) return;
 
                     friendsGrid.innerHTML += `
@@ -442,68 +465,73 @@
                 });
 
                 container.append(friendsGrid);
+            }).catch(err => {
+                console.error("خطأ في تحميل أصدقاء الصديق:", err);
+                $("#friendFriends").html(`
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>حدث خطأ في تحميل الأصدقاء</p>
+                    </div>
+                `);
             });
         }
 
         // ==========================
-        // 3) إزالة صديق
+        // 3) فتح الدردشة
         // ==========================
-
-
         function openChat(fid) {
-    window.location.href = "chat.html?to=" + fid;
-}
+            window.location.href = "chat.html?to=" + fid;
+        }
 
-
-
+        // ==========================
+        // 4) إزالة صديق من Firebase
+        // ==========================
         function removeFriend(fid) {
             if (!confirm('هل أنت متأكد من أنك تريد إزالة هذا الصديق؟')) {
                 return;
             }
 
-            let updatedFriends = me.friends.filter(id => id !== fid);
+            // تعطيل الأزرار لمنع الضغط المتكرر
+            $(".btn").prop("disabled", true);
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    ...me,
-                    friends: updatedFriends
-                }),
-                success: function () {
+            // إزالة الصديق من قائمتي
+            let updatedFriends = (me.friends || [])
+                .map(String)
+                .filter(id => id !== String(fid));
 
-                    // إزالة نفسي من عنده
-                    $.get(API_URL + "/" + fid, function(friendUser) {
+            // 🔥 تحديث بياناتي في Firebase
+            updateUser(me.id, { friends: updatedFriends })
+                .then(() => {
+                    // 🔥 جلب بيانات الصديق
+                    return getUser(fid);
+                })
+                .then(friendUser => {
+                    // إزالة نفسي من قائمة أصدقائه
+                    let updatedHisFriends = (friendUser.friends || [])
+                        .map(String)
+                        .filter(id => id !== String(me.id));
 
-                        let updatedHisFriends = friendUser.friends.filter(id => id !== me.id);
-
-                        $.ajax({
-                            url: API_URL + "/" + fid,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify({
-                                ...friendUser,
-                                friends: updatedHisFriends
-                            }),
-                            success: function () {
-                                alert("تم إزالته من أصدقائك بنجاح");
-                                window.location.href = "index.html";
-                            },
-                            error: function() {
-                                alert("حدث خطأ أثناء إزالة الصديق");
-                            }
-                        });
-
-                    });
-                },
-                error: function() {
+                    // 🔥 تحديث بيانات الصديق في Firebase
+                    return updateUser(fid, { friends: updatedHisFriends });
+                })
+                .then(() => {
+                    // تحديث localStorage
+                    me.friends = updatedFriends;
+                    localStorage.setItem("user", JSON.stringify(me));
+                    
+                    alert("تم إزالته من أصدقائك بنجاح");
+                    window.location.href = "index.html";
+                })
+                .catch(err => {
+                    console.error("خطأ في إزالة الصديق:", err);
                     alert("حدث خطأ أثناء إزالة الصديق");
-                }
-            });
+                    $(".btn").prop("disabled", false);
+                });
         }
 
-        // تحميل البيانات
+        // ===========================
+        // 5) بدء تحميل البيانات
+        // ===========================
         loadFriendProfile();
     </script>
 </body>

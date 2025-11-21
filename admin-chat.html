@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💬 شات الأدمن + إرسال الإشعارات</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .notif-btn {
+            padding: 10px 20px;
+            background: #f8961e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .notif-btn:hover {
+            background: #e67e00;
+        }
+
+        .chat-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 160px);
+        }
+
+        .users-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .users-list h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .user-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-item:hover {
+            background: #e9ecef;
+            transform: translateX(-5px);
+        }
+
+        .user-item.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-item.active .user-avatar {
+            background: white;
+            color: #667eea;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .user-status {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        .unread-badge {
+            background: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .chat-area {
+            background: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 2px solid #f8f9fa;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-header-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .chat-header-info h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .chat-header-info p {
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            max-width: 100%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .message.received .message-content {
+            background: white;
+            color: #333;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        .message.sent .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .message.sent {
+            max-width: 75%;
+        }
+
+        .message.received {
+            max-width: 75%;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-input-area {
+            padding: 20px;
+            border-top: 2px solid #f8f9fa;
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input-area input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .message-input-area input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .empty-chat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6c757d;
+        }
+
+        .empty-chat i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Notification Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-modal {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .user-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .user-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+        }
+
+        .user-checkbox label {
+            flex: 1;
+            cursor: pointer;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #targetUsersContainer {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>
+            <i class="fas fa-comments"></i>
+            شات الأدمن
+        </h1>
+        <div>
+            <button class="notif-btn" onclick="openNotificationModal()">
+                <i class="fas fa-bell"></i> إرسال إشعار
+            </button>
+            <a href="admin-dashboard.html" class="back-btn">
+                <i class="fas fa-arrow-right"></i> رجوع
+            </a>
+        </div>
+    </div>
+
+    <div class="chat-layout">
+        <div class="users-list">
+            <h3>المستخدمين</h3>
+            <div id="usersContainer"></div>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="empty-chat">
+                <i class="fas fa-comments"></i>
+                <h3>اختر مستخدم للمحادثة</h3>
+                <p>اختر مستخدم من القائمة لبدء المحادثة</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Modal -->
+<div id="notificationModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-bell"></i> إرسال إشعار جديد</h2>
+            <span class="close-modal" onclick="closeNotificationModal()">&times;</span>
+        </div>
+        
+        <form id="notificationForm" onsubmit="sendNotification(event)">
+            <div class="form-group">
+                <label>عنوان الإشعار *</label>
+                <input type="text" id="notifTitle" required placeholder="مثال: إعلان مهم">
+            </div>
+
+            <div class="form-group">
+                <label>نص الإشعار *</label>
+                <textarea id="notifMessage" required placeholder="اكتب نص الإشعار هنا..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>إرسال إلى:</label>
+                <select id="targetType" onchange="toggleUserSelection()">
+                    <option value="all">جميع المستخدمين</option>
+                    <option value="specific">مستخدمين محددين</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="userSelectionGroup" style="display: none;">
+                <label>اختر المستخدمين:</label>
+                <div id="targetUsersContainer"></div>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-paper-plane"></i> إرسال الإشعار
+            </button>
+        </form>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+<script src="firebase-data.js"></script>
+
+<script>
+
+const adminEmail = 'byahmad338@gmail.com';
+let adminUser = null;
+let currentChatUserId = null;
+let allUsers = [];
+
+// تحميل قائمة المستخدمين
+function loadUsers() {
+    getAllUsers().then(users => {
+        adminUser = users.find(u => u.email === adminEmail);
+        
+        if (!adminUser) {
+            alert('خطأ: لم يتم العثور على حساب الأدمن!');
+            window.location.href = 'admin-dashboard.html';
+            return;
+        }
+
+        allUsers = users.filter(u => u.email !== adminEmail);
+        displayUsers(allUsers);
+        loadUserCheckboxes(allUsers);
+    });
+}
+
+// عرض المستخدمين
+function displayUsers(users) {
+    const container = $("#usersContainer");
+    container.html('');
+
+    users.forEach(user => {
+        const avatar = user.username.charAt(0).toUpperCase();
+        const unreadCount = countUnreadFrom(user.id);
+        
+        const userItem = $(`
+            <div class="user-item" onclick="openChat('${user.id}')">
+                <div class="user-avatar">${avatar}</div>
+                <div class="user-info">
+                    <div class="user-name">${user.username}</div>
+                    <div class="user-status">${user.email}</div>
+                </div>
+                ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
+            </div>
+        `);
+        
+        container.append(userItem);
+    });
+}
+
+// حساب الرسائل غير المقروءة من مستخدم معين
+function countUnreadFrom(userId) {
+    if (!adminUser || !adminUser.messages) return 0;
+    
+    return (adminUser.messages || []).filter(m =>
+        String(m.from) === String(userId) &&
+        String(m.to) === String(adminUser.id) &&
+        !m.seen
+    ).length;
+}
+
+// فتح محادثة مع مستخدم
+function openChat(userId) {
+    currentChatUserId = userId;
+    const user = allUsers.find(u => String(u.id) === userId);
+    
+    if (!user) return;
+
+    $(".user-item").removeClass('active');
+    event.target.closest('.user-item').classList.add('active');
+
+    const avatar = user.username.charAt(0).toUpperCase();
+    
+    $("#chatArea").html(`
+        <div class="chat-header">
+            <div class="chat-header-avatar">${avatar}</div>
+            <div class="chat-header-info">
+                <h3>${user.username}</h3>
+                <p>${user.email}</p>
+            </div>
+        </div>
+        <div class="messages-container" id="messagesContainer">
+        </div>
+        <div class="message-input-area">
+            <input type="text" id="messageInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    `);
+
+    loadMessages(userId);
+}
+
+// تحميل الرسائل
+function loadMessages(userId) {
+    getUser(adminUser.id).then(freshAdmin => {
+        adminUser = freshAdmin;
+        
+        const messages = (adminUser.messages || []).filter(m =>
+            (String(m.from) === String(adminUser.id) && String(m.to) === userId) ||
+            (String(m.from) === userId && String(m.to) === String(adminUser.id))
+        );
+
+        let changed = false;
+        messages.forEach(m => {
+            if (String(m.from) === userId && String(m.to) === String(adminUser.id) && !m.seen) {
+                m.seen = true;
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            updateUser(adminUser.id, { messages: adminUser.messages });
+        }
+
+        displayMessages(messages);
+    });
+}
+
+// عرض الرسائل
+function displayMessages(messages) {
+    const container = $("#messagesContainer");
+    if (!container.length) return;
+
+    container.html('');
+
+    if (messages.length === 0) {
+        container.html(`
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <p>لا توجد رسائل بعد</p>
+            </div>
+        `);
+        return;
+    }
+
+    messages.forEach((msg, index) => {
+        const isMe = String(msg.from) === String(adminUser.id);
+        const time = new Date(msg.time).toLocaleTimeString('ar-SA', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+
+        // إضافة أزرار التعديل والحذف للرسائل المرسلة من الأدمن
+        let actionButtons = '';
+        if (isMe && msg.fromAdmin) {
+            actionButtons = `
+                <div class="message-actions" style="display: flex; gap: 5px; margin-top: 8px; justify-content: flex-end;">
+                    <button onclick="editAdminMessage(${index}, '${msg.time}')" style="background: #4361ee; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-edit"></i> تعديل
+                    </button>
+                    <button onclick="deleteAdminMessage(${index}, '${msg.time}')" style="background: #f72585; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </div>
+            `;
+        }
+
+        // إضافة علامة "رسالة من الإدارة" للرسائل المرسلة من الأدمن
+        let adminBadge = '';
+        if (isMe && msg.fromAdmin) {
+            adminBadge = '<div style="background: #f8961e; color: white; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; margin-bottom: 8px; display: inline-block;">👑 رسالة إدارية</div>';
+        }
+
+        container.append(`
+            <div class="message ${isMe ? 'sent' : 'received'}" data-msg-time="${msg.time}">
+                <div style="max-width: 100%;">
+                    ${adminBadge}
+                    <div class="message-content" style="word-wrap: break-word; white-space: pre-wrap;">${msg.text}</div>
+                    <div class="message-time">${time}</div>
+                    ${actionButtons}
+                </div>
+            </div>
+        `);
+    });
+
+    container[0].scrollTop = container[0].scrollHeight;
+}
+
+// إرسال رسالة
+function sendMessage() {
+    const input = $("#messageInput");
+    const text = input.val().trim();
+
+    if (!text || !currentChatUserId) return;
+
+    const messageData = {
+        from: String(adminUser.id),
+        to: String(currentChatUserId),
+        text: text,
+        time: Date.now(),
+        seen: false,
+        fromAdmin: true
+    };
+
+    getUser(adminUser.id).then(admin => {
+        const adminMessages = admin.messages || [];
+        adminMessages.push(messageData);
+
+        return updateUser(adminUser.id, { messages: adminMessages });
+    }).then(() => {
+        return getUser(currentChatUserId);
+    }).then(user => {
+        const userMessages = user.messages || [];
+        userMessages.push(messageData);
+
+        return updateUser(currentChatUserId, { messages: userMessages });
+    }).then(() => {
+        input.val('');
+        loadMessages(currentChatUserId);
+    }).catch(err => {
+        console.error('خطأ:', err);
+        alert('حدث خطأ في إرسال الرسالة!');
+    });
+}
+
+// ========================================
+// ✏️ تعديل رسالة الأدمن
+// ========================================
+function editAdminMessage(messageIndex, messageTime) {
+    if (!currentChatUserId) return;
+
+    getUser(adminUser.id).then(admin => {
+        const adminMessages = admin.messages || [];
+        const msgToEdit = adminMessages.find(m => 
+            String(m.to) === String(currentChatUserId) && 
+            m.time === Number(messageTime) &&
+            m.fromAdmin
+        );
+
+        if (!msgToEdit) {
+            alert('لم يتم العثور على الرسالة!');
+            return;
+        }
+
+        const newText = prompt('تعديل الرسالة:', msgToEdit.text);
+        
+        if (newText === null || newText.trim() === '') return;
+
+        // تحديث الرسالة في رسائل الأدمن
+        msgToEdit.text = newText.trim();
+        msgToEdit.edited = true;
+        msgToEdit.editedAt = Date.now();
+
+        updateUser(adminUser.id, { messages: adminMessages }).then(() => {
+            // تحديث الرسالة في رسائل المستخدم
+            return getUser(currentChatUserId);
+        }).then(user => {
+            const userMessages = user.messages || [];
+            const userMsg = userMessages.find(m => 
+                String(m.from) === String(adminUser.id) && 
+                m.time === Number(messageTime) &&
+                m.fromAdmin
+            );
+
+            if (userMsg) {
+                userMsg.text = newText.trim();
+                userMsg.edited = true;
+                userMsg.editedAt = Date.now();
+                return updateUser(currentChatUserId, { messages: userMessages });
+            }
+        }).then(() => {
+            alert('✅ تم تعديل الرسالة بنجاح!');
+            loadMessages(currentChatUserId);
+        }).catch(err => {
+            console.error('خطأ:', err);
+            alert('❌ حدث خطأ في تعديل الرسالة!');
+        });
+    });
+}
+
+// ========================================
+// 🗑️ حذف رسالة الأدمن
+// ========================================
+function deleteAdminMessage(messageIndex, messageTime) {
+    if (!currentChatUserId) return;
+
+    if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟\nسيتم حذفها من جميع المستخدمين!')) {
+        return;
+    }
+
+    getUser(adminUser.id).then(admin => {
+        const adminMessages = admin.messages || [];
+        const filteredAdminMessages = adminMessages.filter(m => 
+            !(String(m.to) === String(currentChatUserId) && 
+              m.time === Number(messageTime) &&
+              m.fromAdmin)
+        );
+
+        return updateUser(adminUser.id, { messages: filteredAdminMessages });
+    }).then(() => {
+        // حذف الرسالة من رسائل المستخدم
+        return getUser(currentChatUserId);
+    }).then(user => {
+        const userMessages = user.messages || [];
+        const filteredUserMessages = userMessages.filter(m => 
+            !(String(m.from) === String(adminUser.id) && 
+              m.time === Number(messageTime) &&
+              m.fromAdmin)
+        );
+
+        return updateUser(currentChatUserId, { messages: filteredUserMessages });
+    }).then(() => {
+        alert('✅ تم حذف الرسالة بنجاح!');
+        loadMessages(currentChatUserId);
+    }).catch(err => {
+        console.error('خطأ:', err);
+        alert('❌ حدث خطأ في حذف الرسالة!');
+    });
+}
+
+// ========================================
+// 🔔 نظام الإشعارات
+// ========================================
+function openNotificationModal() {
+    document.getElementById('notificationModal').style.display = 'block';
+}
+
+function closeNotificationModal() {
+    document.getElementById('notificationModal').style.display = 'none';
+    document.getElementById('notificationForm').reset();
+    document.getElementById('userSelectionGroup').style.display = 'none';
+}
+
+function toggleUserSelection() {
+    const targetType = document.getElementById('targetType').value;
+    const userSelectionGroup = document.getElementById('userSelectionGroup');
+    
+    if (targetType === 'specific') {
+        userSelectionGroup.style.display = 'block';
+    } else {
+        userSelectionGroup.style.display = 'none';
+    }
+}
+
+function loadUserCheckboxes(users) {
+    const container = document.getElementById('targetUsersContainer');
+    container.innerHTML = '';
+
+    users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'user-checkbox';
+        div.innerHTML = `
+            <input type="checkbox" id="user_${user.id}" value="${user.id}">
+            <label for="user_${user.id}">${user.username} (${user.email})</label>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function sendNotification(event) {
+    event.preventDefault();
+
+    const title = document.getElementById('notifTitle').value.trim();
+    const message = document.getElementById('notifMessage').value.trim();
+    const targetType = document.getElementById('targetType').value;
+
+    if (!title || !message) {
+        alert('يرجى ملء جميع الحقول!');
+        return;
+    }
+
+    let targetUsers = [];
+    
+    if (targetType === 'specific') {
+        const checkboxes = document.querySelectorAll('#targetUsersContainer input[type="checkbox"]:checked');
+        
+        if (checkboxes.length === 0) {
+            alert('يرجى اختيار مستخدم واحد على الأقل!');
+            return;
+        }
+
+        checkboxes.forEach(cb => {
+            targetUsers.push(cb.value);
+        });
+    }
+
+    const notificationData = {
+        title: title,
+        message: message,
+        targetType: targetType,
+        targetUsers: targetType === 'specific' ? targetUsers : [],
+        timestamp: Date.now(),
+        readBy: []
+    };
+
+    firebase.database().ref('notifications').push(notificationData)
+        .then(() => {
+            alert('✅ تم إرسال الإشعار بنجاح!');
+            closeNotificationModal();
+        })
+        .catch(err => {
+            console.error('خطأ:', err);
+            alert('❌ حدث خطأ في إرسال الإشعار!');
+        });
+}
+
+// Close modal on outside click
+window.onclick = function(event) {
+    const modal = document.getElementById('notificationModal');
+    if (event.target == modal) {
+        closeNotificationModal();
+    }
+}
+
+// تحديث تلقائي
+setInterval(() => {
+    if (currentChatUserId) {
+        loadMessages(currentChatUserId);
+    }
+    loadUsers();
+}, 3000);
+
+loadUsers();
+
+</script>
+
+</body>
+</html>

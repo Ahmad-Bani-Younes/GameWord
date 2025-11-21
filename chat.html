@@ -6,6 +6,7 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* ... كود CSS ... */
         :root {
             --primary: #4361ee;
             --secondary: #3f37c9;
@@ -88,6 +89,7 @@
             background: var(--success);
             border-radius: 50%;
             margin-right: 5px;
+            display: inline-block;
         }
 
         .header-actions {
@@ -368,7 +370,6 @@
 
 <body>
     <div class="container">
-        <!-- Chat Header -->
         <div class="chat-header">
             <div class="chat-info">
                 <img id="friendAvatar" class="friend-avatar" src="" alt="صديق">
@@ -389,9 +390,7 @@
             </div>
         </div>
 
-        <!-- Chat Container -->
         <div class="chat-container">
-            <!-- Messages Area -->
             <div id="messages">
                 <div class="empty-chat">
                     <i class="fas fa-comments"></i>
@@ -399,140 +398,195 @@
                 </div>
             </div>
 
-            <!-- Input Area -->
-            <div class="input-area">
+            <div class="input-area" id="inputArea">
                 <input type="text" id="text" class="message-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
                 <button class="send-btn" onclick="sendMessage()">
                     <i class="fas fa-paper-plane"></i>
                     <span>إرسال</span>
                 </button>
             </div>
+            
+            <!-- ✅ رسالة وضع القراءة فقط -->
+            <div id="readOnlyMessage" style="display: none; background: linear-gradient(135deg, #fff3cd, #ffe8a1); padding: 20px; text-align: center; border-top: 3px solid #f8961e;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; color: #856404;">
+                    <i class="fas fa-lock" style="font-size: 24px;"></i>
+                    <div>
+                        <p style="margin: 0; font-weight: 700; font-size: 16px;">وضع القراءة فقط</p>
+                        <p style="margin: 5px 0 0 0; font-size: 13px;">هذه رسائل من الإدارة - يمكنك القراءة فقط</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- ✅ Firebase الصحيح -->
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+    <script src="firebase-data.js"></script>
+
     <script>
-        // 🔥 رابط الـ API الموحد
-        const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
+        // إخفاء أخطاء Firebase من الكونسول
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        console.warn = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('FIREBASE') || message.includes('permission_denied')) {
+                return;
+            }
+            originalWarn.apply(console, args);
+        };
+        
+        console.error = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('FIREBASE') || message.includes('permission_denied')) {
+                return;
+            }
+            originalError.apply(console, args);
+        };
 
         let me = JSON.parse(localStorage.getItem("user"));
-
         
         if (!me) location.href = "login.html";
 
-
+        // ✅ تحديث حالة الاتصال عند الدخول
         function goOnline() {
-    $.ajax({
-        url: API_URL + "/" + me.id,
-        method: "PUT",
-        contentType: "application/json",
-        data: JSON.stringify({
-            ...me,
-            isOnline: true,
-            lastSeen: Date.now()
-        })
-    });
-}
+            updateUser(me.id, {
+                isOnline: true,
+                lastSeen: Date.now()
+            });
+        }
 
-goOnline();
-
+        goOnline();
 
         // نأخذ ID الصديق من رابط الصفحة ... chat.html?to=2
         let params = new URLSearchParams(location.search);
         let friendId = params.get("to");
+        let isReadOnly = params.get("readonly") === "true"; // ✅ التحقق من وضع القراءة فقط
 
         if (!friendId) {
             alert("خطأ: لا يوجد صديق للدردشة معه");
             window.location.href = "index.html";
         }
 
+        // ✅ إخفاء/إظهار منطقة الإدخال حسب الوضع
+        if (isReadOnly) {
+            $("#inputArea").hide();
+            $("#readOnlyMessage").show();
+        } else {
+            $("#inputArea").show();
+            $("#readOnlyMessage").hide();
+        }
+
         let friendData = {};
 
         // جلب بيانات الصديق
-        $.get(API_URL + "/" + friendId, function(friend) {
+        getUser(friendId).then(friend => {
+            if (!friend) return;
             friendData = friend;
-            $("#chatWith").text("الدردشة مع: " + friend.username);
-            $("#friendAvatar").attr("src", friend.avatar || "default.png");
+            
+            // إضافة علامة للأدمن في العنوان
+            let adminBadge = friend.email === 'byahmad338@gmail.com' ? ' 👑' : '';
+            let readOnlyBadge = isReadOnly ? ' (قراءة فقط)' : '';
+            $("#chatWith").text("الدردشة مع: " + friend.username + adminBadge + readOnlyBadge);
+            $("#friendAvatar").attr("src", friend.avatar || "https://via.placeholder.com/50");
         });
 
         // ===================================================================
-        // 📌 تحميل رسائل بيني وبين الصديق
+        // 📌 تحميل رسائل بيني وبين الصديق (مع دعم رسائل الأدمن)
         // ===================================================================
-       function loadMessages() {
-    $.get(API_URL, function(users) {
-        
-        let myUser = users.find(u => String(u.id) === String(me.id));
-        let friendUser = users.find(u => String(u.id) === String(friendId));
+        function loadMessages() {
+            getAllUsers().then(users => {
+                let myUser = users.find(u => String(u.id) === String(me.id));
+                if (!myUser) return;
 
-        if (!myUser || !friendUser) return;
+                let allMessages = myUser.messages || [];
+                let changed = false; 
 
-        let allMessages = myUser.messages || [];
-        let changed = false; // لتحديد وجود رسائل "غير مقروءة"
+                // فلترة الرسائل بيني وبين الصديق (مع دعم رسائل الأدمن)
+                let msgs = allMessages.filter(m => {
+                    // رسائل عادية بيني وبين الصديق
+                    let normalMessage = (String(m.from) === String(me.id) && String(m.to) === String(friendId)) ||
+                                       (String(m.from) === String(friendId) && String(m.to) === String(me.id));
+                    
+                    // رسائل من الأدمن (تحقق من خاصية fromAdmin وأن الرسالة موجهة لي)
+                    let adminMessage = m.fromAdmin && String(m.to) === String(me.id);
+                    
+                    return normalMessage || adminMessage;
+                });
 
-        // فلترة الرسائل بيني وبين الصديق
-        let msgs = allMessages.filter(m =>
-            (String(m.from) === String(me.id) && String(m.to) === String(friendId)) ||
-            (String(m.from) === String(friendId) && String(m.to) === String(me.id))
-        );
+                // تحويل رسائل الصديق لي → إلى "مقروءة"
+                msgs.forEach(m => {
+                    if (
+                        String(m.from) === String(friendId) &&
+                        String(m.to) === String(me.id) &&
+                        m.seen !== true
+                    ) {
+                        m.seen = true;
+                        changed = true;
+                    }
+                    
+                    // ✅ تحويل رسائل الأدمن إلى "مقروءة" عند فتح الشات
+                    if (m.fromAdmin && String(m.to) === String(me.id) && !m.adminRead) {
+                        m.adminRead = true;
+                        changed = true;
+                    }
+                });
 
-        // تحويل رسائل الصديق لي → إلى "مقروءة"
-        msgs.forEach(m => {
-            if (
-                String(m.from) === String(friendId) &&
-                String(m.to) === String(me.id) &&
-                m.seen !== true
-            ) {
-                m.seen = true;
-                changed = true;
-            }
-        });
+                // إذا تغيّر شيء → حفظ التعديلات
+                if (changed) {
+                    updateUser(myUser.id, { messages: allMessages });
+                }
 
-        // إذا تغيّر شيء → حفظ التعديلات
-        if (changed) {
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    ...myUser,
-                    messages: allMessages
-                })
+                // عرض الرسائل في الواجهة
+                let messagesContainer = $("#messages");
+
+                if (msgs.length === 0) {
+                    messagesContainer.html(`
+                        <div class="empty-chat">
+                            <i class="fas fa-comments"></i>
+                            <p>ابدأ محادثة جديدة مع صديقك</p>
+                        </div>
+                    `);
+                    return;
+                }
+
+                messagesContainer.html("");
+
+                msgs.forEach(m => {
+                    let isMe = String(m.from) === String(me.id);
+                    let time = new Date(m.time).toLocaleTimeString('ar-EG', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    // إضافة علامة للرسائل من الأدمن
+                    let adminBadge = '';
+                    let messageStyle = '';
+                    
+                    if (m.fromAdmin) {
+                        adminBadge = '<div style="background: #f8961e; color: white; padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block; box-shadow: 0 2px 5px rgba(248, 150, 30, 0.3);">👑 رسالة من الإدارة</div><br>';
+                        messageStyle = 'style="background: linear-gradient(135deg, #fff3cd, #ffe8a1); color: #333; border: 2px solid #f8961e; box-shadow: 0 3px 10px rgba(248, 150, 30, 0.2);"';
+                    }
+
+                    // إضافة علامة "معدلة" إذا كانت الرسالة معدلة
+                    let editedBadge = m.edited ? '<span style="font-size: 10px; color: #999; margin-right: 8px;">(معدلة)</span>' : '';
+
+                    messagesContainer.append(`
+                        <div class="message ${isMe ? "me" : "other"}" ${messageStyle}>
+                            <div style="word-wrap: break-word; white-space: pre-wrap;">
+                                ${adminBadge}${m.text}
+                            </div>
+                            <div class="message-time">${time} ${editedBadge}</div>
+                        </div>
+                    `);
+                });
+
+                let box = document.getElementById("messages");
+                box.scrollTop = box.scrollHeight;
             });
         }
-
-        // عرض الرسائل في الواجهة
-        let messagesContainer = $("#messages");
-
-        if (msgs.length === 0) {
-            messagesContainer.html(`
-                <div class="empty-chat">
-                    <i class="fas fa-comments"></i>
-                    <p>ابدأ محادثة جديدة مع صديقك</p>
-                </div>
-            `);
-            return;
-        }
-
-        messagesContainer.html("");
-
-        msgs.forEach(m => {
-            let isMe = String(m.from) === String(me.id);
-            let time = new Date(m.time).toLocaleTimeString('ar-EG', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            messagesContainer.append(`
-                <div class="message ${isMe ? "me" : "other"}">
-                    ${m.text}
-                    <div class="message-time">${time}</div>
-                </div>
-            `);
-        });
-
-        let box = document.getElementById("messages");
-        box.scrollTop = box.scrollHeight;
-    });
-}
 
         // ===================================================================
         // 📌 إرسال رسالة
@@ -552,56 +606,31 @@ goOnline();
                 from: String(me.id),
                 to: String(friendId),
                 text: text,
-                time: Date.now()
+                time: Date.now(),
+                seen: false // الرسائل المرسلة تكون غير مقروءة مبدئياً
             };
 
             // 1) أضف الرسالة لــ me
-            let myMessages = me.messages || [];
-            myMessages.push(msg);
+            getUser(me.id).then(myUser => {
+                let myMessages = myUser.messages || [];
+                myMessages.push(msg);
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    ...me,
-                    messages: myMessages
-                }),
-                success: function () {
+                updateUser(me.id, { messages: myMessages }).then(() => {
                     // 2) أضف الرسالة لــ friend
-                    $.get(API_URL + "/" + friendId, function(friendUser) {
+                    getUser(friendId).then(friendUser => {
                         let hisMessages = friendUser.messages || [];
                         hisMessages.push(msg);
 
-                        $.ajax({
-                            url: API_URL + "/" + friendId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify({
-                                ...friendUser,
-                                messages: hisMessages
-                            }),
-                            success: function () {
-                                textInput.val("");
-                                loadMessages();
-                                
-                                // إعادة تمكين الزر
-                                sendBtn.prop('disabled', false);
-                                sendBtn.html('<i class="fas fa-paper-plane"></i><span>إرسال</span>');
-                            },
-                            error: function() {
-                                alert("حدث خطأ أثناء إرسال الرسالة");
-                                sendBtn.prop('disabled', false);
-                                sendBtn.html('<i class="fas fa-paper-plane"></i><span>إرسال</span>');
-                            }
+                        updateUser(friendId, { messages: hisMessages }).then(() => {
+                            textInput.val("");
+                            loadMessages();
+                            
+                            // إعادة تمكين الزر
+                            sendBtn.prop('disabled', false);
+                            sendBtn.html('<i class="fas fa-paper-plane"></i><span>إرسال</span>');
                         });
                     });
-                },
-                error: function() {
-                    alert("حدث خطأ أثناء إرسال الرسالة");
-                    sendBtn.prop('disabled', false);
-                    sendBtn.html('<i class="fas fa-paper-plane"></i><span>إرسال</span>');
-                }
+                });
             });
         }
 
@@ -623,128 +652,103 @@ goOnline();
             }
 
             // مسح الرسائل من جانبي
-            let myMessages = (me.messages || []).filter(m => 
-                !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
-                !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
-            );
+            getUser(me.id).then(myUser => {
+                let myMessages = (myUser.messages || []).filter(m => 
+                    !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
+                    !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
+                );
 
-            $.ajax({
-                url: API_URL + "/" + me.id,
-                method: "PUT",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    ...me,
-                    messages: myMessages
-                }),
-                success: function () {
+                updateUser(myUser.id, { messages: myMessages }).then(() => {
                     // مسح الرسائل من جانب الصديق
-                    $.get(API_URL + "/" + friendId, function(friendUser) {
+                    getUser(friendId).then(friendUser => {
                         let hisMessages = (friendUser.messages || []).filter(m => 
                             !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
                             !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
                         );
 
-                        $.ajax({
-                            url: API_URL + "/" + friendId,
-                            method: "PUT",
-                            contentType: "application/json",
-                            data: JSON.stringify({
-                                ...friendUser,
-                                messages: hisMessages
-                            }),
-                            success: function () {
-                                alert("تم مسح المحادثة بنجاح");
-                                loadMessages();
-                            }
+                        updateUser(friendId, { messages: hisMessages }).then(() => {
+                            alert("تم مسح المحادثة بنجاح");
+                            loadMessages();
                         });
                     });
-                }
+                });
             });
         }
 
         // ===================================================================
-        // 📌 تحديث الرسائل تلقائياً كل 1.5 ثانية
+        // 📌 تنسيق آخر ظهور
         // ===================================================================
-       let lastMessageTime = 0;
+        function formatLastSeen(timestamp) {
+            if (!timestamp || typeof timestamp !== "number") return "غير متصل";
 
-function smartCheck() {
-    $.get(API_URL + "/" + me.id, function(freshMe) {
+            if (timestamp < 1000000000000) { 
+                return "غير متصل";
+            }
 
-        let msgs = freshMe.messages || [];
+            let diff = Date.now() - timestamp;
+            let minutes = Math.floor(diff / 60000);
+            let hours = Math.floor(minutes / 60);
 
-        if (msgs.length === 0) return;
+            if (minutes < 1) return "متصل الآن";
+            if (minutes === 1) return "آخر ظهور قبل دقيقة";
+            if (minutes < 60) return `آخر ظهور قبل ${minutes} دقائق`;
 
-        // آخر وقت لرسالة
-        let latest = msgs[msgs.length - 1].time;
+            if (hours === 1) return "آخر ظهور قبل ساعة";
+            if (hours < 24) return `آخر ظهور قبل ${hours} ساعات`;
 
-        // إذا في رسالة جديدة لم نشاهدها → اعمل تحديث
-        if (latest > lastMessageTime) {
-            lastMessageTime = latest;
-            loadMessages();
-        }
-    });
-}
-
-
-
-function formatLastSeen(timestamp) {
-    if (!timestamp || typeof timestamp !== "number") return "غير متصل";
-
-    // لو القيمة صغيرة جدًا (واضح إنها غلط)
-    if (timestamp < 1000000000000) { // أقل من 13 رقم
-        return "غير متصل";
-    }
-
-    let diff = Date.now() - timestamp;
-    let minutes = Math.floor(diff / 60000);
-    let hours = Math.floor(minutes / 60);
-
-    if (minutes < 1) return "متصل الآن";
-    if (minutes === 1) return "آخر ظهور قبل دقيقة";
-    if (minutes < 60) return `آخر ظهور قبل ${minutes} دقائق`;
-
-    if (hours === 1) return "آخر ظهور قبل ساعة";
-    if (hours < 24) return `آخر ظهور قبل ${hours} ساعات`;
-
-    let date = new Date(timestamp);
-    return `آخر ظهور: ${date.toLocaleString('ar-EG')}`;
-}
-
-window.addEventListener("beforeunload", function() {
-    $.ajax({
-        url: API_URL + "/" + me.id,
-        method: "PUT",
-        contentType: "application/json",
-        data: JSON.stringify({
-            ...me,
-            isOnline: false,
-            lastSeen: Date.now()
-        })
-    });
-});
-
-// فحص كل 3 ثواني فقط (خفيفة جداً)
-setInterval(loadFriendStatus, 3000);
-setInterval(smartCheck, 3000);
-
-
-function loadFriendStatus() {
-    $.get(API_URL + "/" + friendId, function (friend) {
-        let statusText = "";
-
-        if (friend.isOnline) {
-            statusText = `<span class="online-dot"></span>متصل الآن`;
-        } else {
-            statusText = formatLastSeen(friend.lastSeen);
+            let date = new Date(timestamp);
+            return `آخر ظهور: ${date.toLocaleString('ar-EG')}`;
         }
 
-        $(".friend-details p").html(statusText);
-    });
-}
+        // ✅ عند الإغلاق: تحديث حالة عدم الاتصال
+        window.addEventListener("beforeunload", function() {
+            updateUser(me.id, {
+                isOnline: false,
+                lastSeen: Date.now()
+            });
+        });
 
-// أول تحميل
-loadMessages();
-loadFriendStatus();
+        // ✅ مراقبة حالة الصديق
+        function loadFriendStatus() {
+            getUser(friendId).then(friend => {
+                if (!friend) return;
+                let statusText = "";
+
+                if (friend.isOnline) {
+                    statusText = `<span class="online-dot"></span>متصل الآن`;
+                } else {
+                    statusText = formatLastSeen(friend.lastSeen);
+                }
+
+                $(".friend-details p").html(statusText);
+            });
+        }
+
+        // ✅ مراقبة الرسائل الجديدة
+        let lastMessageTime = 0;
+
+        function smartCheck() {
+            getUser(me.id).then(freshMe => {
+                if (!freshMe) return;
+                let msgs = freshMe.messages || [];
+                if (msgs.length === 0) return;
+
+                let latest = msgs[msgs.length - 1].time;
+
+                if (latest > lastMessageTime) {
+                    lastMessageTime = latest;
+                    loadMessages();
+                }
+            });
+        }
+
+        // فحص كل 3 ثواني
+        setInterval(loadFriendStatus, 3000);
+        setInterval(smartCheck, 3000);
+
+        // أول تحميل
+        loadMessages();
+        loadFriendStatus();
     </script>
 </body>
 </html>

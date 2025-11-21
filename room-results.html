@@ -203,6 +203,17 @@
             background: #6c757d;
         }
 
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading i {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
         @media (max-width: 768px) {
             .podium {
                 height: 250px;
@@ -225,44 +236,70 @@
     <h1>🏆 نتائج التحدي</h1>
     <div class="room-name" id="roomName"></div>
 
-    <!-- Winner Announcement -->
-    <div class="winner-announcement">
-        <h2>🎉 الفائز بالمركز الأول 🎉</h2>
-        <div class="winner-name" id="winnerName">---</div>
-        <div class="winner-score" id="winnerScore">0 نقطة</div>
+    <div id="loadingArea" class="loading">
+        <div style="font-size: 48px;">⏳</div>
+        <p>جاري تحميل النتائج...</p>
     </div>
 
-    <!-- Podium (Top 3) -->
-    <div class="podium" id="podium"></div>
+    <div id="resultsArea" style="display:none;">
+        <!-- Winner Announcement -->
+        <div class="winner-announcement">
+            <h2>🎉 الفائز بالمركز الأول 🎉</h2>
+            <div class="winner-name" id="winnerName">---</div>
+            <div class="winner-score" id="winnerScore">0 نقطة</div>
+        </div>
 
-    <!-- Full Results -->
-    <div class="full-results">
-        <div class="full-results-title">📊 الترتيب الكامل</div>
-        <div id="fullResults"></div>
-    </div>
+        <!-- Podium (Top 3) -->
+        <div class="podium" id="podium"></div>
 
-    <!-- Actions -->
-    <div style="margin-top: 30px;">
-        <button onclick="location.href='rooms.html'">رجوع للغرف</button>
-        <button class="secondary" onclick="location.href='index.html'">الصفحة الرئيسية</button>
+        <!-- Full Results -->
+        <div class="full-results">
+            <div class="full-results-title">📊 الترتيب الكامل</div>
+            <div id="fullResults"></div>
+        </div>
+
+        <!-- Actions -->
+        <div style="margin-top: 30px;">
+            <button onclick="location.href='rooms.html'">رجوع للغرف</button>
+            <button class="secondary" onclick="location.href='index.html'">الصفحة الرئيسية</button>
+        </div>
     </div>
 </div>
 
+<!-- 🔥 Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+
+<!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
+<script src="firebase-data.js"></script>
+
 <script>
 
-const ROOMS_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
+// 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 
 let params = new URLSearchParams(location.search);
 let roomId = params.get("room");
 
+if (!roomId) {
+    alert("معرّف الغرفة غير موجود!");
+    location.href = "rooms.html";
+}
+
 // =========================================
-// 🔥 تحميل النتائج
+// 🔥 تحميل النتائج من Firebase
 // =========================================
 function loadResults() {
-    $.get(ROOMS_URL + "/" + roomId, function(room) {
+    getRoom(roomId).then(room => {
+        if (!room) {
+            alert("الغرفة غير موجودة!");
+            location.href = "rooms.html";
+            return;
+        }
+
         $("#roomName").text(room.name);
 
-        // ترتيب اللاعبين
+        // ترتيب اللاعبين حسب النقاط
         room.players.sort((a, b) => (b.score || 0) - (a.score || 0));
 
         // الفائز
@@ -277,15 +314,27 @@ function loadResults() {
 
         // الترتيب الكامل
         displayFullResults(room.players);
+
+        // إخفاء شاشة التحميل وعرض النتائج
+        $("#loadingArea").hide();
+        $("#resultsArea").show();
+    }).catch(err => {
+        console.error("خطأ في تحميل النتائج:", err);
+        $("#loadingArea").html(`
+            <div style="font-size: 48px; color: #f72585;">❌</div>
+            <p>حدث خطأ في تحميل النتائج!</p>
+            <button onclick="location.href='rooms.html'" style="margin-top: 20px;">رجوع للغرف</button>
+        `);
     });
 }
 
 // =========================================
-// 🔥 عرض المنصة
+// 🔥 عرض المنصة (أول 3 مراكز)
 // =========================================
 function displayPodium(players) {
     let podium = $("#podium").html("");
 
+    // الترتيب: الثاني، الأول، الثالث (لشكل المنصة)
     let positions = ['second', 'first', 'third'];
     let indices = [1, 0, 2];
 
@@ -314,6 +363,17 @@ function displayPodium(players) {
 function displayFullResults(players) {
     let container = $("#fullResults").html("");
 
+    if (players.length === 0) {
+        container.html(`
+            <div class="result-row">
+                <div style="text-align: center; width: 100%; padding: 20px; color: #666;">
+                    لا يوجد لاعبين في هذه الغرفة
+                </div>
+            </div>
+        `);
+        return;
+    }
+
     players.forEach((player, index) => {
         container.append(`
             <div class="result-row">
@@ -325,6 +385,9 @@ function displayFullResults(players) {
     });
 }
 
+// =========================================
+// 🚀 تشغيل التطبيق
+// =========================================
 loadResults();
 
 </script>

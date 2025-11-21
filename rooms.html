@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏟️ التحديات الجماعية</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -51,6 +52,7 @@
             align-items: center;
             justify-content: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         /* Tabs */
@@ -109,7 +111,7 @@
         /* Rooms Grid */
         .rooms-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -174,6 +176,7 @@
             margin-bottom: 15px;
             font-size: 14px;
             color: #666;
+            flex-wrap: wrap;
         }
 
         .room-info span {
@@ -311,6 +314,7 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .modal.active {
@@ -322,7 +326,7 @@
             border-radius: 15px;
             padding: 30px;
             max-width: 500px;
-            width: 90%;
+            width: 100%;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
 
@@ -405,8 +409,37 @@
             transform: translateY(-2px);
         }
 
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .rooms-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .room-actions {
                 grid-template-columns: 1fr;
             }
         }
@@ -437,6 +470,9 @@
         <button class="tab-btn" onclick="switchTab('words')">
             🎯 غرف الكلمات
         </button>
+        <button class="tab-btn" onclick="switchTab('egg-wars')">
+            🥚 حرب البيض
+        </button>
         <button class="tab-btn" onclick="switchTab('my')">
             <i class="fas fa-user"></i> غرفي
         </button>
@@ -450,8 +486,14 @@
         </button>
     </center>
 
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+        <div class="spinner"></div>
+        <p>جاري تحميل الغرف...</p>
+    </div>
+
     <!-- Rooms List -->
-    <div id="roomsList" class="rooms-grid"></div>
+    <div id="roomsList" class="rooms-grid" style="display:none;"></div>
 
     <!-- Back Button -->
     <center style="margin-top: 30px;">
@@ -477,6 +519,7 @@
             <select id="gameType">
                 <option value="math">🎮 لعبة الحساب</option>
                 <option value="words">🎯 لعبة الكلمات</option>
+                <option value="egg-wars">🥚 حرب البيض</option>
             </select>
         </div>
 
@@ -500,10 +543,17 @@
     </div>
 </div>
 
+<!-- 🔥 Firebase Scripts -->
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+
+<!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
+<script src="firebase-data.js"></script>
+
 <script>
 
-const API_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/users";
-const ROOMS_URL = "https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
+// 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 
 let me = JSON.parse(localStorage.getItem("user"));
 if (!me) location.href = "login.html";
@@ -512,12 +562,25 @@ let currentTab = 'all';
 let allRooms = [];
 
 // =========================================
-// 🔥 تحميل الغرف
+// 🔥 تحميل الغرف من Firebase
 // =========================================
 function loadRooms() {
-    $.get(ROOMS_URL, function(rooms) {
+    getAllRooms().then(rooms => {
         allRooms = rooms;
+        $("#loadingState").hide();
+        $("#roomsList").show();
         displayRooms();
+    }).catch(err => {
+        console.error("خطأ في تحميل الغرف:", err);
+        $("#loadingState").html(`
+            <div style="color: white;">
+                <i class="fas fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px;"></i>
+                <p>حدث خطأ في تحميل الغرف!</p>
+                <button class="create-btn" onclick="loadRooms()" style="margin-top: 20px;">
+                    <i class="fas fa-sync"></i> إعادة المحاولة
+                </button>
+            </div>
+        `);
     });
 }
 
@@ -528,10 +591,25 @@ function displayRooms() {
     let container = $("#roomsList").html("");
     
     let filtered = allRooms.filter(room => {
+        // ✅ التحقق من صحة بيانات الغرفة
+        if (!room || !room.players || !Array.isArray(room.players)) return false;
+
+        // ✅ فلترة الغرف الخاصة - تظهر فقط للمنشئ والمدعوين
+        const isCreator = room.creatorId === String(me.id);
+        const isInvited = room.invitedPlayers && room.invitedPlayers.includes(String(me.id));
+        const isPlayer = room.players.some(p => p.id === String(me.id));
+        
+        // إذا كانت الغرفة خاصة، يجب أن يكون المستخدم منشئ أو مدعو أو لاعب
+        if (room.isPrivate && !isCreator && !isInvited && !isPlayer) {
+            return false;
+        }
+        
+        // الفلترة حسب التبويب
         if (currentTab === 'all') return true;
         if (currentTab === 'math') return room.gameType === 'math';
         if (currentTab === 'words') return room.gameType === 'words';
-        if (currentTab === 'my') return room.players.some(p => p.id === String(me.id));
+        if (currentTab === 'egg-wars') return room.gameType === 'egg-wars';
+        if (currentTab === 'my') return isPlayer || isCreator;
         return true;
     });
 
@@ -547,6 +625,9 @@ function displayRooms() {
     }
 
     filtered.forEach(room => {
+        // ✅ تخطي الغرف غير الصالحة
+        if (!room.players || !Array.isArray(room.players)) return;
+
         let isCreator = room.creatorId === String(me.id);
         let isPlayer = room.players.some(p => p.id === String(me.id));
         
@@ -558,7 +639,11 @@ function displayRooms() {
         }[room.status];
 
         let typeClass = room.gameType;
-        let typeText = room.gameType === 'math' ? '🎮 حساب' : '🎯 كلمات';
+        let typeText = {
+            'math': '🎮 حساب',
+            'words': '🎯 كلمات',
+            'egg-wars': '🥚 حرب البيض'
+        }[room.gameType] || room.gameType;
 
         let playersHTML = room.players.map(p => {
             let isCreatorChip = p.id === room.creatorId;
@@ -659,6 +744,7 @@ function switchTab(tab) {
 // =========================================
 function openCreateModal() {
     $("#createModal").addClass("active");
+    $("#roomName").val("");
 }
 
 function closeCreateModal() {
@@ -666,7 +752,7 @@ function closeCreateModal() {
 }
 
 // =========================================
-// 🔥 إنشاء غرفة
+// 🔥 إنشاء غرفة في Firebase
 // =========================================
 function createRoom() {
     let name = $("#roomName").val().trim();
@@ -678,31 +764,43 @@ function createRoom() {
         return;
     }
 
-    let room = {
-        name: name,
-        gameType: gameType,
-        maxRounds: maxRounds,
-        status: 'waiting',
-        creatorId: String(me.id),
-        players: [{
-            id: String(me.id),
-            username: me.username,
-            score: 0
-        }],
-        currentRound: 0,
-        createdAt: Date.now()
-    };
+    // ✅ التحقق من عدم وجود غرفة بنفس الاسم
+    getAllRooms().then(rooms => {
+        const existingRoom = rooms.find(r => 
+            r && r.name && r.name.toLowerCase() === name.toLowerCase() && 
+            r.status !== 'finished'
+        );
 
-    $.ajax({
-        url: ROOMS_URL,
-        method: "POST",
-        contentType: "application/json",
-        data: JSON.stringify(room),
-        success: function(response) {
-            alert("تم إنشاء الغرفة!");
-            closeCreateModal();
-            loadRooms();
+        if (existingRoom) {
+            alert("⚠️ يوجد غرفة بنفس الاسم! الرجاء اختيار اسم آخر.");
+            return;
         }
+
+        let room = {
+            name: name,
+            gameType: gameType,
+            maxRounds: maxRounds,
+            status: 'waiting',
+            creatorId: String(me.id),
+            players: [{
+                id: String(me.id),
+                username: me.username,
+                score: 0
+            }],
+            invitedPlayers: [], // ✅ قائمة اللاعبين المدعوين
+            isPrivate: true, // ✅ الغرفة خاصة
+            currentRound: 0,
+            createdAt: Date.now()
+        };
+
+        return createNewRoom(room);
+    }).then(() => {
+        alert("تم إنشاء الغرفة!");
+        closeCreateModal();
+        loadRooms();
+    }).catch(err => {
+        console.error("خطأ في إنشاء الغرفة:", err);
+        alert("حدث خطأ في إنشاء الغرفة!");
     });
 }
 
@@ -710,7 +808,7 @@ function createRoom() {
 // 🔥 الانضمام لغرفة
 // =========================================
 function joinRoom(roomId) {
-    $.get(ROOMS_URL + "/" + roomId, function(room) {
+    getRoom(roomId).then(room => {
         if (room.status !== 'waiting') {
             alert("هذه الغرفة بدأت بالفعل!");
             return;
@@ -721,22 +819,25 @@ function joinRoom(roomId) {
             return;
         }
 
+        // ✅ التحقق من الدعوة للغرف الخاصة
+        if (room.isPrivate && !room.invitedPlayers.includes(String(me.id))) {
+            alert("⚠️ هذه غرفة خاصة! يجب أن تتلقى دعوة للانضمام.");
+            return;
+        }
+
         room.players.push({
             id: String(me.id),
             username: me.username,
             score: 0
         });
 
-        $.ajax({
-            url: ROOMS_URL + "/" + roomId,
-            method: "PUT",
-            contentType: "application/json",
-            data: JSON.stringify(room),
-            success: function() {
-                alert("تم الانضمام للغرفة!");
-                loadRooms();
-            }
-        });
+        return updateRoom(roomId, room);
+    }).then(() => {
+        alert("✅ تم الانضمام للغرفة!");
+        loadRooms();
+    }).catch(err => {
+        console.error("خطأ في الانضمام:", err);
+        alert("حدث خطأ في الانضمام للغرفة!");
     });
 }
 
@@ -744,12 +845,17 @@ function joinRoom(roomId) {
 // 🔥 دخول الغرفة
 // =========================================
 function enterRoom(roomId) {
-    $.get(ROOMS_URL + "/" + roomId, function(room) {
+    getRoom(roomId).then(room => {
         if (room.gameType === 'math') {
             location.href = "room-math.html?room=" + roomId;
-        } else {
+        } else if (room.gameType === 'words') {
             location.href = "room-words.html?room=" + roomId;
+        } else if (room.gameType === 'egg-wars') {
+            location.href = "egg-wars.html?game=" + roomId;
         }
+    }).catch(err => {
+        console.error("خطأ:", err);
+        alert("حدث خطأ في دخول الغرفة!");
     });
 }
 
@@ -761,32 +867,101 @@ function viewResults(roomId) {
 }
 
 // =========================================
-// 🔥 دعوة الأصدقاء
+// 🔥 دعوة الأصدقاء بشكل احترافي
 // =========================================
 function inviteFriends(roomId) {
-    $.get(API_URL + "/" + me.id, function(user) {
+    getUser(me.id).then(user => {
         let friends = user.friends || [];
         
         if (friends.length === 0) {
-            alert("ليس لديك أصدقاء للدعوة!");
+            alert("ليس لديك أصدقاء للدعوة!\n\nأضف أصدقاء أولاً من صفحة الأصدقاء.");
             return;
         }
 
-        $.get(API_URL, function(allUsers) {
-            let friendsList = friends.map(fid => {
-                let friend = allUsers.find(u => String(u.id) === fid);
-                return friend ? `${friend.username} (ID: ${friend.id})` : null;
-            }).filter(f => f).join('\n');
+        return getAllUsers().then(allUsers => {
+            // جلب بيانات الأصدقاء
+            let friendsData = friends.map(fid => {
+                return allUsers.find(u => String(u.id) === fid);
+            }).filter(f => f);
 
-            let friendIds = prompt(`اختر أصدقاء للدعوة (أدخل ID مفصولة بفواصل):\n\n${friendsList}`);
-            
-            if (!friendIds) return;
+            if (friendsData.length === 0) {
+                alert("لا يوجد أصدقاء متاحين للدعوة!");
+                return;
+            }
 
-            let ids = friendIds.split(',').map(id => id.trim());
-            
-            // إرسال إشعارات (يمكن تطويره لاحقاً)
-            alert(`تم إرسال دعوات لـ ${ids.length} أصدقاء!\nشارك معهم رابط الغرفة: rooms.html`);
+            // إنشاء قائمة HTML للأصدقاء
+            let friendsHTML = friendsData.map(friend => `
+                <div style="padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="friend_${friend.id}" value="${friend.id}" style="width: 20px; height: 20px;">
+                    <label for="friend_${friend.id}" style="flex: 1; cursor: pointer; font-size: 16px;">
+                        <strong>${friend.username}</strong>
+                    </label>
+                </div>
+            `).join('');
+
+            // إنشاء نافذة منبثقة مخصصة
+            let modal = $(`
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                    <div style="background: white; border-radius: 15px; padding: 30px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                        <h2 style="color: #667eea; margin-bottom: 20px; text-align: center;">👥 دعوة الأصدقاء</h2>
+                        <p style="color: #666; margin-bottom: 20px; text-align: center;">اختر الأصدقاء الذين تريد دعوتهم للغرفة</p>
+                        <div id="friendsList">${friendsHTML}</div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button onclick="sendInvitations('${roomId}')" style="flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                ✅ إرسال الدعوات
+                            </button>
+                            <button onclick="closeInviteModal()" style="flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+            $("body").append(modal);
         });
+    }).catch(err => {
+        console.error("خطأ:", err);
+        alert("حدث خطأ في جلب الأصدقاء!");
+    });
+}
+
+// إغلاق نافذة الدعوة
+window.closeInviteModal = function() {
+    $("body > div").last().remove();
+}
+
+// إرسال الدعوات
+window.sendInvitations = function(roomId) {
+    let selectedFriends = [];
+    $("input[type='checkbox']:checked").each(function() {
+        selectedFriends.push($(this).val());
+    });
+
+    if (selectedFriends.length === 0) {
+        alert("الرجاء اختيار صديق واحد على الأقل!");
+        return;
+    }
+
+    // تحديث الغرفة بإضافة المدعوين
+    getRoom(roomId).then(room => {
+        room.invitedPlayers = room.invitedPlayers || [];
+        
+        // إضافة الأصدقاء المختارين
+        selectedFriends.forEach(friendId => {
+            if (!room.invitedPlayers.includes(friendId)) {
+                room.invitedPlayers.push(friendId);
+            }
+        });
+
+        return updateRoom(roomId, room);
+    }).then(() => {
+        closeInviteModal();
+        alert(`✅ تم إرسال الدعوات لـ ${selectedFriends.length} من الأصدقاء!`);
+        loadRooms();
+    }).catch(err => {
+        console.error("خطأ:", err);
+        alert("حدث خطأ في إرسال الدعوات!");
     });
 }
 
@@ -794,7 +969,7 @@ function inviteFriends(roomId) {
 // 🔥 تعديل الغرفة
 // =========================================
 function editRoom(roomId) {
-    $.get(ROOMS_URL + "/" + roomId, function(room) {
+    getRoom(roomId).then(room => {
         if (room.status !== 'waiting') {
             alert("لا يمكن تعديل غرفة بدأت أو انتهت!");
             return;
@@ -809,40 +984,33 @@ function editRoom(roomId) {
         room.name = newName;
         room.maxRounds = parseInt(newRounds);
 
-        $.ajax({
-            url: ROOMS_URL + "/" + roomId,
-            method: "PUT",
-            contentType: "application/json",
-            data: JSON.stringify(room),
-            success: function() {
-                alert("تم تعديل الغرفة!");
-                loadRooms();
-            }
-        });
+        return updateRoom(roomId, room);
+    }).then(() => {
+        alert("تم تعديل الغرفة!");
+        loadRooms();
+    }).catch(err => {
+        console.error("خطأ:", err);
+        alert("حدث خطأ في تعديل الغرفة!");
     });
 }
 
 // =========================================
-// 🔥 حذف الغرفة
+// 🔥 حذف الغرفة من Firebase
 // =========================================
 function deleteRoom(roomId) {
     if (!confirm("هل أنت متأكد من حذف الغرفة؟")) return;
 
-    $.ajax({
-        url: ROOMS_URL + "/" + roomId,
-        method: "DELETE",
-        success: function() {
-            alert("تم حذف الغرفة!");
-            loadRooms();
-        },
-        error: function() {
-            alert("فشل حذف الغرفة!");
-        }
+    deleteRoomById(roomId).then(() => {
+        alert("تم حذف الغرفة!");
+        loadRooms();
+    }).catch(err => {
+        console.error("خطأ:", err);
+        alert("فشل حذف الغرفة!");
     });
 }
 
 // ==============================
-// 🎯 تحديث تلقائي
+// 🎯 تحديث تلقائي من Firebase
 // ==============================
 setInterval(loadRooms, 3000);
 
