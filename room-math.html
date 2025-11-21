@@ -352,7 +352,7 @@ function loadRoom() {
             
             if (!room.currentQuestion) {
                 // المنشئ يولد السؤال
-                if (room.creatorId === String(me.id)) {
+                if (room.creatorId === String(me.id) && !isCalculating) {
                     let q = generateQuestion();
                     room.currentQuestion = q;
                     room.answers = {};
@@ -360,6 +360,16 @@ function loadRoom() {
                 }
             } else {
                 displayQuestion();
+                
+                // ✅ المنشئ يتحقق دورياً إذا الجميع أجاب
+                if (room.creatorId === String(me.id) && !isCalculating) {
+                    let allAnswered = room.players.every(p => room.answers && room.answers[String(p.id)]);
+                    if (allAnswered) {
+                        console.log("الجميع أجاب، جاري حساب النتائج...");
+                        isCalculating = true;
+                        calculateScores();
+                    }
+                }
             }
         } else if (room.status === 'finished') {
             location.href = "room-results.html?room=" + roomId;
@@ -476,37 +486,13 @@ function submitAnswer() {
         return getRoom(roomId);
     }).then(updatedRoom => {
         room = updatedRoom;
-        checkAllAnswered();
+        // تم نقل التحقق إلى loadRoom لضمان التزامن
     }).catch(err => {
         console.error("خطأ في إرسال الإجابة:", err);
         alert("حدث خطأ في إرسال الإجابة!");
         $("#answer").prop("disabled", false);
         $("#submitBtn").prop("disabled", false);
     });
-}
-
-// =========================================
-// 🔥 فحص إذا الجميع أجاب
-// =========================================
-function checkAllAnswered() {
-    setTimeout(() => {
-        // ✅ جلب أحدث نسخة للتأكد من Firebase
-        getRoom(roomId).then(data => {
-            room = data;
-            
-            if (!room.answers) return;
-            
-            // ✅ تحقق من جميع اللاعبين
-            let allAnswered = room.players.every(p => room.answers[String(p.id)]);
-            
-            if (allAnswered && room.creatorId === String(me.id)) {
-                isCalculating = true; // ✅ إيقاف التحديث التلقائي
-                calculateScores();
-            }
-        }).catch(err => {
-            console.error("خطأ في فحص الإجابات:", err);
-        });
-    }, 1500); // ✅ زيادة الوقت للتأكد من حفظ الجميع
 }
 
 // =========================================

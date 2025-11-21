@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🎯 غرفة الكلمات الجماعية</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+<script src="firebase-data.js"></script>
 <style>
 body{background:linear-gradient(135deg,#f093fb,#f5576c);min-height:100vh;padding:20px;font-family:'Segoe UI',sans-serif}
 .game-box{max-width:900px;margin:0 auto;background:#fff;padding:30px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
@@ -76,23 +80,464 @@ button.start{background:#28a745;max-width:300px;margin:20px auto;display:block}
 <button class="secondary" onclick="location.href='rooms.html'">رجوع للغرف</button>
 </div>
 <script>
-const ROOMS_URL="https://6914f7e23746c71fe04a2ac4.mockapi.io/rooms";
-const LETTERS=['ا','ب','ت','ج','ح','خ','د','ر','ز','س','ش','ص','ع','ف','ق','ك','ل','م','ن','ه','و','ي'];
-const VALID={'ا':{boyNames:['أحمد','أمير','أيمن','إبراهيم'],girlNames:['آية','أمل','إيمان','أسماء'],animals:['أسد','أرنب'],plants:['أرز','أناناس'],objects:['إبرة','أريكة'],countries:['الأردن','الإمارات','أمريكا']},'م':{boyNames:['محمد','محمود','مصطفى','معاذ'],girlNames:['مريم','ملك','منى','ميرا'],animals:['ماعز','مها'],plants:['موز','مانجو'],objects:['مفتاح','مكتب'],countries:['مصر','المغرب']},'س':{boyNames:['سامي','سعيد','سالم'],girlNames:['سارة','سلمى','سناء'],animals:['سمكة','سلحفاة'],plants:['سبانخ'],objects:['سرير','سيارة','ساعة'],countries:['سوريا','السعودية']}};
-let me=JSON.parse(localStorage.getItem("user"));
-if(!me)location.href="login.html";
-let roomId=new URLSearchParams(location.search).get("room"),room=null;
-function generateChallenge(){let l=LETTERS[Math.floor(Math.random()*LETTERS.length)];return{letter:l,category:`اكتب كلمات تبدأ بحرف: ${l}`}}
-function checkAnswer(l,a,t){if(!a||!a.trim())return null;a=a.trim();if(!a.startsWith(l))return false;if(VALID[l]){let v=VALID[l][t]||[];return v.includes(a)}return false}
-function loadRoom(){$.get(ROOMS_URL+"/"+roomId,d=>{room=d;$("#roomName").text(room.name);$("#roundIndicator").text(`الجولة ${room.currentRound||0} / ${room.maxRounds}`);room.players.sort((a,b)=>(b.score||0)-(a.score||0));displayLeaderboard();if(room.status==='waiting'&&room.creatorId===String(me.id))$("#startBtn").show();if(room.status==='waiting'){$("#waitingArea").show();$("#gameArea").hide()}else if(room.status==='playing'){$("#waitingArea").hide();$("#gameArea").show();if(!room.currentQuestion){if(room.creatorId===String(me.id)){let c=generateChallenge();room.currentQuestion=c;room.answers={};saveRoom()}}else displayChallenge()}else if(room.status==='finished')location.href="room-results.html?room="+roomId})}
-function displayLeaderboard(){let c=$("#leaderboardList").html("");room.players.forEach((p,i)=>{let r=i+1,rc='normal',t='';if(r===1){rc='gold';t='👑'}else if(r===2){rc='silver';t='🥈'}else if(r===3){rc='bronze';t='🥉'}let isMe=p.id===String(me.id),row=isMe?'player-row me':'player-row',st='';if(room.status==='playing'&&room.answers){if(room.answers[p.id])st='<span class="player-status answered">✅ أجاب</span>';else st='<span class="player-status waiting">⏳ ينتظر</span>'}c.append(`<div class="${row}"><div class="player-rank ${rc}">${t||r}</div><div class="player-name">${p.username}${isMe?' (أنت)':''}</div>${st}<div class="player-score">${p.score||0}</div></div>`)})}
-function startGame(){if(!confirm("هل تريد بدء اللعبة؟"))return;room.status='playing';room.currentRound=1;let c=generateChallenge();room.currentQuestion=c;room.answers={};saveRoom()}
-function displayChallenge(){if(!room.currentQuestion)return;$("#letterBox").text(room.currentQuestion.letter);$("#categoryBox").text(room.currentQuestion.category);if(room.answers&&room.answers[String(me.id)]){$("input").prop("disabled",true);$("#submitBtn").prop("disabled",true)}else{$("input").prop("disabled",false);$("#submitBtn").prop("disabled",false)}}
-function submitAnswers(){let a={boyName:$("#boyName").val().trim(),girlName:$("#girlName").val().trim(),animal:$("#animal").val().trim(),plant:$("#plant").val().trim(),object:$("#object").val().trim(),country:$("#country").val().trim()};room.answers=room.answers||{};room.answers[String(me.id)]={answers:a,time:Date.now()};$("input").prop("disabled",true);$("#submitBtn").prop("disabled",true);saveRoom(checkAllAnswered)}
-function checkAllAnswered(){setTimeout(()=>{$.get(ROOMS_URL+"/"+roomId,d=>{room=d;if(!room.answers)return;let all=room.players.every(p=>room.answers[p.id]);if(all&&room.creatorId===String(me.id))calculateScores()})},1000)}
-function calculateScores(){let l=room.currentQuestion.letter,cats=[{key:'boyName',type:'boyNames'},{key:'girlName',type:'girlNames'},{key:'animal',type:'animals'},{key:'plant',type:'plants'},{key:'object',type:'objects'},{key:'country',type:'countries'}],scores={},fastest={};room.players.forEach(p=>{let pd=room.answers[p.id];if(!pd)return;let sc=0;cats.forEach(c=>{let ans=pd.answers[c.key],cor=checkAnswer(l,ans,c.type);if(cor===true){sc++;if(!fastest[c.key]||pd.time<fastest[c.key].time)fastest[c.key]={playerId:p.id,time:pd.time}}});scores[p.id]=sc});Object.values(fastest).forEach(f=>{if(f&&scores[f.playerId]>0)scores[f.playerId]+=1});room.players.forEach(p=>p.score=(p.score||0)+(scores[p.id]||0));if(room.currentRound>=room.maxRounds){room.status='finished';room.currentQuestion=null;room.answers={}}else{room.currentRound+=1;room.currentQuestion=null;room.answers={}}saveRoom(()=>{if(room.status==='finished')location.href="room-results.html?room="+roomId;else{setTimeout(()=>{$.get(ROOMS_URL+"/"+roomId,ur=>{room=ur;if(!room.currentQuestion&&room.creatorId===String(me.id)){let c=generateChallenge();room.currentQuestion=c;room.answers={};saveRoom()}})},1000)}})}
-function saveRoom(cb){$.ajax({url:ROOMS_URL+"/"+roomId,method:"PUT",contentType:"application/json",data:JSON.stringify(room),success:()=>{if(cb)cb()}})}
-setInterval(()=>{if(!room||room.status!=='finished')loadRoom()},2000);
+// Firebase is used instead of MockAPI
+const LETTERS=['ا','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي'];
+
+// قاعدة بيانات الإجابات الصحيحة - شاملة
+const VALID = {
+    'ا': {
+        boyNames: ['أحمد', 'أمير', 'أيمن', 'إبراهيم', 'إسلام', 'أسامة', 'أنس', 'إياد', 'أدهم', 'إسماعيل', 'أديب', 'أركان', 'إلياس', 'أمجد'],
+        girlNames: ['آية', 'أمل', 'إيمان', 'أسماء', 'آلاء', 'أميرة', 'إسراء', 'أريج', 'إيناس', 'ألين', 'آمنة', 'أمينة', 'إلهام', 'أنفال'],
+        animals: ['أسد', 'أرنب', 'إوزة', 'أفعى', 'أخطبوط'],
+        plants: ['أرز', 'أناناس', 'إجاص'],
+        objects: ['إبرة', 'أريكة', 'أصيص', 'إناء', 'إطار'],
+        countries: ['الأردن', 'الإمارات', 'أمريكا', 'إسبانيا', 'إيطاليا', 'أستراليا', 'ألمانيا', 'أفغانستان', 'إيران', 'أوكرانيا', 'أوغندا', 'إثيوبيا']
+    },
+    'ب': {
+        boyNames: ['بلال', 'باسل', 'بشار', 'بدر', 'باسم', 'بكر', 'براء', 'بهاء'],
+        girlNames: ['بتول', 'بسمة', 'بشرى', 'بيان', 'بلقيس', 'بدور', 'بسنت', 'بيسان'],
+        animals: ['بقرة', 'بطة', 'ببغاء', 'بعوضة', 'بجعة', 'بومة', 'بغل'],
+        plants: ['بطاطس', 'بصل', 'بقدونس', 'برتقال', 'بطيخ', 'برقوق', 'بامية', 'بروكلي', 'بندورة'],
+        objects: ['باب', 'بطانية', 'برميل', 'بندقية', 'بوصلة', 'بالون', 'براد', 'بطاقة'],
+        countries: ['بريطانيا', 'بلجيكا', 'البحرين', 'بنغلاديش', 'بولندا', 'البرازيل', 'بلغاريا', 'بوليفيا']
+    },
+    'ت': {
+        boyNames: ['تامر', 'تيم', 'توفيق', 'تميم', 'تركي'],
+        girlNames: ['تالا', 'تمارا', 'تسنيم', 'تقى', 'تالة', 'تغريد', 'تيماء'],
+        animals: ['تمساح', 'تيس', 'ترسة'],
+        plants: ['تفاح', 'توت', 'تين', 'تمر'],
+        objects: ['تلفاز', 'تلفون', 'تاج', 'تنورة', 'ترمس', 'تابوت'],
+        countries: ['تونس', 'تركيا', 'تايلاند', 'تنزانيا', 'تشيلي']
+    },
+    'ث': {
+        boyNames: ['ثائر', 'ثابت', 'ثامر'],
+        girlNames: ['ثريا', 'ثناء', 'ثراء'],
+        animals: ['ثعبان', 'ثعلب', 'ثور'],
+        plants: ['ثوم', 'ثمام'],
+        objects: ['ثلاجة', 'ثوب', 'ثريا'],
+        countries: []
+    },
+    'ج': {
+        boyNames: ['جمال', 'جلال', 'جابر', 'جاسم', 'جميل', 'جواد', 'جعفر', 'جاد'],
+        girlNames: ['جنى', 'جود', 'جوري', 'جميلة', 'جنان', 'جولي', 'جيهان', 'جمانة'],
+        animals: ['جمل', 'جاموس', 'جراد', 'جرذ'],
+        plants: ['جزر', 'جرجير', 'جوافة', 'جوز هند'],
+        objects: ['جوال', 'جرس', 'جدار', 'جهاز', 'جزمة', 'جوارب'],
+        countries: ['الجزائر', 'جيبوتي', 'جورجيا', 'جامايكا']
+    },
+    'ح': {
+        boyNames: ['حسن', 'حسين', 'حمزة', 'حسام', 'حاتم', 'حذيفة', 'حارث', 'حليم'],
+        girlNames: ['حنان', 'حلا', 'حنين', 'حورية', 'حسناء', 'حياة', 'حبيبة', 'حميدة'],
+        animals: ['حصان', 'حمار', 'حمامة', 'حوت', 'حلزون', 'حرباء', 'حشرة'],
+        plants: ['حمص', 'حنطة'],
+        objects: ['حذاء', 'حقيبة', 'حبل', 'حزام', 'حجر', 'حلق'],
+        countries: []
+    },
+    'خ': {
+        boyNames: ['خالد', 'خليل', 'خضر', 'خليفة', 'خطاب'],
+        girlNames: ['خديجة', 'خولة', 'خلود', 'خيرية'],
+        animals: ['خروف', 'خنزير', 'خفاش', 'خيل'],
+        plants: ['خس', 'خيار', 'خوخ', 'خبيزة'],
+        objects: ['خاتم', 'خيط', 'خريطة', 'خزانة', 'خيمة'],
+        countries: []
+    },
+    'د': {
+        boyNames: ['داود', 'دانيال', 'ديب', 'درويش'],
+        girlNames: ['دانة', 'دينا', 'ديما', 'دعاء', 'ديالا', 'دلال', 'دارين'],
+        animals: ['دجاجة', 'ديك', 'دب', 'دولفين', 'دودة'],
+        plants: ['دراق', 'دوم', 'دوار الشمس'],
+        objects: ['دفتر', 'درج', 'دولاب', 'دبوس', 'دراجة'],
+        countries: ['دبي', 'الدنمارك']
+    },
+    'ذ': {
+        boyNames: ['ذياب', 'ذكي'],
+        girlNames: ['ذكرى'],
+        animals: ['ذئب', 'ذبابة'],
+        plants: ['ذرة'],
+        objects: ['ذهب'],
+        countries: []
+    },
+    'ر': {
+        boyNames: ['رامي', 'راشد', 'رضا', 'رياض', 'رائد', 'رشيد', 'رافت', 'ربيع'],
+        girlNames: ['رنا', 'ريم', 'رهف', 'روان', 'رغد', 'رنيم', 'رباب', 'رشا', 'روز', 'رانيا'],
+        animals: ['رخم', 'ريم'],
+        plants: ['رمان', 'روزماري', 'ريحان'],
+        objects: ['راديو', 'رف', 'رمح', 'ريموت'],
+        countries: ['روسيا', 'رومانيا', 'رواندا']
+    },
+    'ز': {
+        boyNames: ['زيد', 'زياد', 'زاهر', 'زكريا', 'زين', 'زاهي'],
+        girlNames: ['زينب', 'زهراء', 'زينة', 'زهرة', 'زين', 'زمزم'],
+        animals: ['زرافة', 'زواحف', 'زيبرا'],
+        plants: ['زيتون', 'زنجبيل', 'زعتر', 'زهرة'],
+        objects: ['زجاج', 'زر', 'زجاجة', 'زورق'],
+        countries: ['زيمبابوي', 'زامبيا']
+    },
+    'س': {
+        boyNames: ['سامي', 'سعيد', 'سالم', 'سليم', 'سلطان', 'سعد', 'سليمان', 'سامر', 'سفيان'],
+        girlNames: ['سارة', 'سلمى', 'سناء', 'سمية', 'سلسبيل', 'سما', 'سمر', 'سهير', 'سهى'],
+        animals: ['سمكة', 'سلحفاة', 'سنجاب', 'سمان', 'سحلية', 'سرطان'],
+        plants: ['سبانخ', 'سفرجل', 'سماق'],
+        objects: ['سرير', 'سيارة', 'ساعة', 'سجادة', 'سلم', 'سكين', 'سفينة', 'سلة'],
+        countries: ['سوريا', 'السعودية', 'السودان', 'سنغافورة', 'سويسرا', 'السويد', 'سريلانكا']
+    },
+    'ش': {
+        boyNames: ['شادي', 'شاهر', 'شريف', 'شكري', 'شهاب'],
+        girlNames: ['شيماء', 'شذى', 'شهد', 'شيرين', 'شروق', 'شادية'],
+        animals: ['شمبانزي', 'شاهين'],
+        plants: ['شمام', 'شعير', 'شاي'],
+        objects: ['شباك', 'شنطة', 'شمع', 'شماعة', 'شراب'],
+        countries: []
+    },
+    'ص': {
+        boyNames: ['صالح', 'صلاح', 'صهيب', 'صادق', 'صبحي', 'صفوان'],
+        girlNames: ['صفاء', 'صابرين', 'صفية', 'صبا'],
+        animals: ['صقر', 'صرصور'],
+        plants: ['صبار', 'صنوبر'],
+        objects: ['صندوق', 'صحن', 'صابون', 'صورة'],
+        countries: ['الصين', 'الصومال']
+    },
+    'ض': {
+        boyNames: ['ضياء', 'ضاري', 'ضرغام'],
+        girlNames: ['ضحى', 'ضي'],
+        animals: ['ضبع', 'ضفدع'],
+        plants: [],
+        objects: ['ضوء'],
+        countries: []
+    },
+    'ط': {
+        boyNames: ['طارق', 'طلال', 'طاهر', 'طه'],
+        girlNames: ['طيف', 'طيبة'],
+        animals: ['طاووس'],
+        plants: ['طماطم', 'طحالب'],
+        objects: ['طاولة', 'طائرة', 'طبل', 'طوب'],
+        countries: []
+    },
+    'ظ': {
+        boyNames: ['ظافر'],
+        girlNames: [],
+        animals: ['ظبي'],
+        plants: [],
+        objects: ['ظرف'],
+        countries: []
+    },
+    'ع': {
+        boyNames: ['عمر', 'علي', 'عبدالله', 'عثمان', 'عامر', 'عدنان', 'عماد', 'عصام', 'عزيز'],
+        girlNames: ['عائشة', 'علا', 'عبير', 'عهد', 'عفاف', 'عزة', 'عنود', 'عالية'],
+        animals: ['عصفور', 'عقرب', 'عنكبوت', 'عجل'],
+        plants: ['عنب', 'عدس', 'عرعر'],
+        objects: ['عصا', 'عقد', 'عين', 'عجلة'],
+        countries: ['عمان', 'العراق']
+    },
+    'غ': {
+        boyNames: ['غسان', 'غازي', 'غالب', 'غيث'],
+        girlNames: ['غادة', 'غالية', 'غيداء', 'غزل'],
+        animals: ['غراب', 'غزال', 'غوريلا'],
+        plants: ['غار'],
+        objects: ['غطاء', 'غرفة'],
+        countries: ['غانا', 'غواتيمالا', 'غينيا']
+    },
+    'ف': {
+        boyNames: ['فارس', 'فهد', 'فيصل', 'فراس', 'فادي', 'فواز', 'فؤاد'],
+        girlNames: ['فاطمة', 'فرح', 'فريدة', 'فايزة', 'فدوى', 'فداء'],
+        animals: ['فيل', 'فهد', 'فأر', 'فراشة'],
+        plants: ['فول', 'فجل', 'فستق', 'فراولة'],
+        objects: ['فرن', 'فرشاة', 'فانوس', 'فأس'],
+        countries: ['فلسطين', 'فرنسا', 'فنلندا', 'الفلبين', 'فنزويلا']
+    },
+    'ق': {
+        boyNames: ['قاسم', 'قصي', 'قيس', 'قتيبة'],
+        girlNames: ['قمر'],
+        animals: ['قرد', 'قط', 'قنفذ', 'قنديل'],
+        plants: ['قمح', 'قرنبيط', 'قرع'],
+        objects: ['قلم', 'قميص', 'قفل', 'قبعة', 'قارب'],
+        countries: ['قطر', 'قبرص']
+    },
+    'ك': {
+        boyNames: ['كريم', 'كمال', 'كرم', 'كامل'],
+        girlNames: ['كريمة', 'كوثر', 'كاميليا'],
+        animals: ['كلب', 'كنغر', 'كوالا'],
+        plants: ['كرز', 'كراث', 'كمثرى', 'كزبرة', 'كيوي'],
+        objects: ['كتاب', 'كرسي', 'كوب', 'كرة'],
+        countries: ['الكويت', 'كندا', 'كوريا', 'كولومبيا', 'كينيا']
+    },
+    'ل': {
+        boyNames: ['ليث', 'لؤي', 'لقمان'],
+        girlNames: ['ليلى', 'لينا', 'لمى', 'لارا', 'لبنى', 'لطيفة', 'لجين'],
+        animals: ['ليث', 'لاما'],
+        plants: ['ليمون', 'لوز', 'لوبيا'],
+        objects: ['لمبة', 'لوحة'],
+        countries: ['لبنان', 'ليبيا', 'لوكسمبورغ']
+    },
+    'م': {
+        boyNames: ['محمد', 'محمود', 'مصطفى', 'معاذ', 'مالك', 'مراد', 'مروان', 'مهند', 'ماجد', 'منير'],
+        girlNames: ['مريم', 'ملك', 'منى', 'ميرا', 'ماريا', 'مها', 'ميس', 'مرام', 'مي', 'منال'],
+        animals: ['ماعز', 'مها', 'ماموث'],
+        plants: ['موز', 'مانجو', 'ملوخية', 'ملفوف', 'مشمش'],
+        objects: ['مفتاح', 'مكتب', 'مروحة', 'ملعقة', 'مقص', 'مصباح', 'مرآة'],
+        countries: ['مصر', 'المغرب', 'ماليزيا', 'المكسيك', 'موريتانيا']
+    },
+    'ن': {
+        boyNames: ['نادر', 'ناصر', 'نبيل', 'نواف', 'نايف', 'نزار'],
+        girlNames: ['نور', 'نادية', 'نهى', 'نجلاء', 'نجوى', 'نسرين', 'نرمين', 'ناديا'],
+        animals: ['نمر', 'نحلة', 'نعامة', 'نسر', 'نمل'],
+        plants: ['نعناع', 'نرجس'],
+        objects: ['نافذة', 'نظارة', 'نجفة'],
+        countries: ['النرويج', 'نيجيريا', 'نيوزيلندا', 'النمسا', 'نيبال']
+    },
+    'ه': {
+        boyNames: ['هاني', 'هشام', 'هيثم', 'هادي', 'همام'],
+        girlNames: ['هالة', 'هبة', 'هدى', 'هند', 'هنادي', 'هيا', 'هيفاء'],
+        animals: ['هر', 'هدهد'],
+        plants: ['هيل'],
+        objects: ['هاتف'],
+        countries: ['هولندا', 'الهند', 'هونغ كونغ']
+    },
+    'و': {
+        boyNames: ['وائل', 'وليد', 'وسام', 'وسيم'],
+        girlNames: ['وفاء', 'ورد', 'وعد', 'وسن', 'وداد'],
+        animals: ['وعل', 'وزة', 'وطواط'],
+        plants: ['ورد'],
+        objects: ['وسادة'],
+        countries: []
+    },
+    'ي': {
+        boyNames: ['ياسر', 'يوسف', 'يزن', 'يامن', 'يزيد', 'ياسين', 'يحيى'],
+        girlNames: ['ياسمين', 'يارا', 'يسرى', 'يمنى', 'يسر'],
+        animals: ['يمامة', 'يعسوب'],
+        plants: ['يوسفي', 'ياسمين'],
+        objects: ['ياقة'],
+        countries: ['اليمن', 'اليابان', 'يوغوسلافيا']
+    }
+};
+
+let me = JSON.parse(localStorage.getItem("user"));
+if (!me) location.href = "login.html";
+
+let roomId = new URLSearchParams(location.search).get("room");
+let room = null;
+let roomRef = firebase.database().ref('rooms/' + roomId);
+
+function generateChallenge() {
+    let l = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+    return {
+        letter: l,
+        category: `اكتب كلمات تبدأ بحرف: ${l}`
+    };
+}
+
+function checkAnswer(l, a, t) {
+    if (!a || !a.trim()) return null;
+    a = a.trim();
+    if (!a.startsWith(l)) return false;
+    if (VALID[l]) {
+        let v = VALID[l][t] || [];
+        return v.includes(a);
+    }
+    return false;
+}
+
+function loadRoom() {
+    roomRef.on('value', snapshot => {
+        room = snapshot.val();
+        if (!room) {
+            alert("الغرفة غير موجودة!");
+            location.href = "rooms.html";
+            return;
+        }
+
+        $("#roomName").text(room.name);
+        $("#roundIndicator").text(`الجولة ${room.currentRound || 0} / ${room.maxRounds}`);
+        
+        if(room.players) {
+            room.players.sort((a, b) => (b.score || 0) - (a.score || 0));
+        }
+        displayLeaderboard();
+
+        if (room.status === 'waiting' && room.creatorId === String(me.id)) $("#startBtn").show();
+
+        if (room.status === 'waiting') {
+            $("#waitingArea").show();
+            $("#gameArea").hide();
+        } else if (room.status === 'playing') {
+            $("#waitingArea").hide();
+            $("#gameArea").show();
+
+            if (!room.currentQuestion) {
+                if (room.creatorId === String(me.id)) {
+                    let c = generateChallenge();
+                    roomRef.update({
+                        currentQuestion: c,
+                        answers: {}
+                    });
+                }
+            } else {
+                displayChallenge();
+            }
+
+            if (room.creatorId === String(me.id) && room.answers) {
+                let playersList = room.players || [];
+                let allAnswered = playersList.every(p => room.answers[p.id]);
+                if (allAnswered && playersList.length > 0) {
+                    calculateScores();
+                }
+            }
+
+        } else if (room.status === 'finished') {
+            location.href = "room-results.html?room=" + roomId;
+        }
+    });
+}
+
+function displayLeaderboard() {
+    let c = $("#leaderboardList").html("");
+    if(!room.players) return;
+    
+    room.players.forEach((p, i) => {
+        let r = i + 1,
+            rc = 'normal',
+            t = '';
+        if (r === 1) {
+            rc = 'gold';
+            t = '👑';
+        } else if (r === 2) {
+            rc = 'silver';
+            t = '🥈';
+        } else if (r === 3) {
+            rc = 'bronze';
+            t = '🥉';
+        }
+        let isMe = p.id === String(me.id),
+            row = isMe ? 'player-row me' : 'player-row',
+            st = '';
+        if (room.status === 'playing') {
+            if (room.answers && room.answers[p.id]) st = '<span class="player-status answered">✅ أجاب</span>';
+            else st = '<span class="player-status waiting">⏳ ينتظر</span>';
+        }
+        c.append(`<div class="${row}"><div class="player-rank ${rc}">${t || r}</div><div class="player-name">${p.username}${isMe ? ' (أنت)' : ''}</div>${st}<div class="player-score">${p.score || 0}</div></div>`);
+    });
+}
+
+function startGame() {
+    if (!confirm("هل تريد بدء اللعبة؟")) return;
+    let c = generateChallenge();
+    roomRef.update({
+        status: 'playing',
+        currentRound: 1,
+        currentQuestion: c,
+        answers: {}
+    });
+}
+
+function displayChallenge() {
+    if (!room.currentQuestion) return;
+    $("#letterBox").text(room.currentQuestion.letter);
+    $("#categoryBox").text(room.currentQuestion.category);
+    
+    if (room.answers && room.answers[String(me.id)]) {
+        $("input").prop("disabled", true);
+        $("#submitBtn").prop("disabled", true);
+        $("#submitBtn").text("تم إرسال الإجابات");
+    } else {
+        $("input").prop("disabled", false);
+        $("#submitBtn").prop("disabled", false);
+        $("#submitBtn").text("إرسال الإجابات");
+    }
+}
+
+function submitAnswers() {
+    let a = {
+        boyName: $("#boyName").val().trim(),
+        girlName: $("#girlName").val().trim(),
+        animal: $("#animal").val().trim(),
+        plant: $("#plant").val().trim(),
+        object: $("#object").val().trim(),
+        country: $("#country").val().trim()
+    };
+    
+    firebase.database().ref(`rooms/${roomId}/answers/${me.id}`).set({
+        answers: a,
+        time: Date.now()
+    });
+    
+    $("input").prop("disabled", true);
+    $("#submitBtn").prop("disabled", true);
+}
+
+function calculateScores() {
+    if(window.calculating) return;
+    window.calculating = true;
+
+    let l = room.currentQuestion.letter,
+        cats = [{
+            key: 'boyName',
+            type: 'boyNames'
+        }, {
+            key: 'girlName',
+            type: 'girlNames'
+        }, {
+            key: 'animal',
+            type: 'animals'
+        }, {
+            key: 'plant',
+            type: 'plants'
+        }, {
+            key: 'object',
+            type: 'objects'
+        }, {
+            key: 'country',
+            type: 'countries'
+        }],
+        scores = {},
+        fastest = {};
+        
+    room.players.forEach(p => {
+        let pd = room.answers[p.id];
+        if (!pd) return;
+        let sc = 0;
+        cats.forEach(c => {
+            let ans = pd.answers[c.key],
+                cor = checkAnswer(l, ans, c.type);
+            if (cor === true) {
+                sc++;
+                if (!fastest[c.key] || pd.time < fastest[c.key].time) fastest[c.key] = {
+                    playerId: p.id,
+                    time: pd.time
+                };
+            }
+        });
+        scores[p.id] = sc;
+    });
+    
+    Object.values(fastest).forEach(f => {
+        if (f && scores[f.playerId] > 0) scores[f.playerId] += 1;
+    });
+    
+    let updatedPlayers = room.players.map(p => {
+        p.score = (p.score || 0) + (scores[p.id] || 0);
+        return p;
+    });
+
+    let updates = {
+        players: updatedPlayers,
+        answers: null,
+        currentQuestion: null
+    };
+
+    if (room.currentRound >= room.maxRounds) {
+        updates.status = 'finished';
+    } else {
+        updates.currentRound = room.currentRound + 1;
+    }
+
+    roomRef.update(updates).then(() => {
+        window.calculating = false;
+        $("input").val("");
+        $("input").prop("disabled", false);
+        $("#submitBtn").prop("disabled", false);
+    });
+}
+
 loadRoom();
 </script>
 </body>

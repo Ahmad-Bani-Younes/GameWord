@@ -596,23 +596,304 @@ let params = new URLSearchParams(location.search);
 let opponentId = String(params.get("op"));
 let gameId = params.get("game");
 
-let opponent;
-let myGame;
-let currentRound = 1;
+let gameRef = firebase.database().ref('word-games/' + gameId);
+let gameData = null;
+let isHost = String(me.id) < String(opponentId); // تحديد المضيف (الأقل ID)
 
 // =========================================
-// 🔥 جلب بيانات الخصم من Firebase
+// 🔥 تهيئة اللعبة
 // =========================================
-getUser(opponentId).then(res => {
-    opponent = res;
-    $("#opponentName").text(opponent.username);
-    $("#opFinalName").text(opponent.username);
-}).catch(err => {
-    console.error("خطأ في جلب بيانات الخصم:", err);
-});
+function initGame() {
+    gameRef.on('value', snapshot => {
+        gameData = snapshot.val();
+
+        if (!gameData) {
+            // إذا اللعبة غير موجودة، قم بإنشائها (للمرة الأولى)
+            if (isHost) {
+                createGame();
+            }
+            return;
+        }
+
+        updateUI();
+        checkGameLogic();
+    });
+
+    // جلب اسم الخصم
+    getUser(opponentId).then(user => {
+        $("#opponentName").text(user.username);
+        $("#opFinalName").text(user.username);
+    });
+}
+
+function createGame() {
+    let initialGame = {
+        players: {
+            [me.id]: { username: me.username, score: 0 },
+            [opponentId]: { username: "الخصم", score: 0 } // سيتم تحديث الاسم لاحقاً
+        },
+        round: 1,
+        maxRounds: MAX_ROUNDS,
+        status: 'playing',
+        roundStatus: 'playing', // playing, finished
+        challenge: generateChallenge(),
+        answers: {}
+    };
+    gameRef.set(initialGame);
+}
 
 // =========================================
-// 🎮 اختيار حرف عشوائي
+// 🎮 تحديث الواجهة
+// =========================================
+function updateUI() {
+    if (!gameData) return;
+
+    // تحديث النقاط
+    let myScore = gameData.players[me.id]?.score || 0;
+    let opScore = gameData.players[opponentId]?.score || 0;
+    
+    $("#myScore").text(myScore);
+    $("#opponentScore").text(opScore);
+    $("#myName").text(me.username);
+
+    // تحديث الجولة
+    $("#roundIndicator").text(`الجولة ${gameData.round} / ${gameData.maxRounds}`);
+
+    // تحديث التحدي
+    if (gameData.challenge) {
+        $("#letterBox").text(gameData.challenge.letter);
+        $("#categoryBox").text(gameData.challenge.category);
+    }
+
+    // حالة الخصم
+    if (gameData.answers && gameData.answers[opponentId]) {
+        $("#opponentStatus").html("✅ أرسل");
+    } else {
+        $("#opponentStatus").html("⏳ ينتظر...");
+    }
+
+    // حالتي
+    if (gameData.answers && gameData.answers[me.id]) {
+        $("#myStatus").html("✅ أرسلت");
+        disableInputs(true);
+    } else {
+        $("#myStatus").html("⏳ جاري الكتابة...");
+        disableInputs(false);
+    }
+
+    // عرض النتائج إذا انتهت الجولة
+    if (gameData.roundStatus === 'finished') {
+        showRoundResults();
+    } else {
+        $("#resultBox").hide();
+        $("#winnerBox").hide();
+    }
+
+    // إنهاء اللعبة
+    if (gameData.status === 'finished') {
+        showGameOver();
+    }
+}
+
+function disableInputs(disabled) {
+    $("input").prop("disabled", disabled);
+    $("#submitBtn").prop("disabled", disabled);
+}
+
+// =========================================
+// 🧠 منطق اللعبة
+// =========================================
+function checkGameLogic() {
+    if (!isHost || !gameData || gameData.status === 'finished') return;
+
+    // التحقق من انتهاء الجولة (كلا اللاعبين أجاب)
+    if (gameData.roundStatus === 'playing') {
+        let p1Answer = gameData.answers && gameData.answers[me.id];
+        let p2Answer = gameData.answers && gameData.answers[opponentId];
+
+        if (p1Answer && p2Answer) {
+            calculateScores();
+        }
+    }
+}
+
+// =========================================
+// 📝 إرسال الإجابات
+// =========================================
+function sendAnswers() {
+    if (gameData.answers && gameData.answers[me.id]) return;
+
+    let answers = {
+        boyName: $("#boyName").val().trim(),
+        girlName: $("#girlName").val().trim(),
+        animal: $("#animal").val().trim(),
+        plant: $("#plant").val().trim(),
+        object: $("#object").val().trim(),
+        country: $("#country").val().trim(),
+        time: Date.now()
+    };
+
+    gameRef.child('answers').child(me.id).set(answers);
+}
+
+// =========================================
+// 🧮 حساب النتائج (للمضيف فقط)
+// =========================================
+function calculateScores() {
+    let p1Ans = gameData.answers[me.id];
+    let p2Ans = gameData.answers[opponentId];
+    let letter = gameData.challenge.letter;
+
+    let p1Points = 0;
+    let p2Points = 0;
+
+    const categories = [
+        { key: 'boyName', type: 'boyNames' },
+        { key: 'girlName', type: 'girlNames' },
+        { key: 'animal', type: 'animals' },
+        { key: 'plant', type: 'plants' },
+        { key: 'object', type: 'objects' },
+        { key: 'country', type: 'countries' }
+    ];
+
+    categories.forEach(cat => {
+        let v1 = checkAnswer(letter, p1Ans[cat.key], cat.type);
+        let v2 = checkAnswer(letter, p2Ans[cat.key], cat.type);
+
+        if (v1 && v2) {
+            p1Points += 5;
+            p2Points += 5;
+        } else if (v1) {
+            p1Points += 10;
+        } else if (v2) {
+            p2Points += 10;
+        }
+    });
+
+    // بونص السرعة
+    if (p1Points > 0 && p2Points > 0) {
+        if (p1Ans.time < p2Ans.time) p1Points += 5;
+        else if (p2Ans.time < p1Ans.time) p2Points += 5;
+    }
+
+    // تحديث النقاط والحالة
+    let updates = {};
+    updates[`players/${me.id}/score`] = (gameData.players[me.id].score || 0) + p1Points;
+    updates[`players/${opponentId}/score`] = (gameData.players[opponentId].score || 0) + p2Points;
+    updates['roundStatus'] = 'finished';
+    updates['lastRoundResult'] = {
+        p1Points: p1Points,
+        p2Points: p2Points
+    };
+
+    gameRef.update(updates);
+
+    // الانتقال للجولة التالية بعد 5 ثواني
+    setTimeout(() => {
+        nextRound();
+    }, 5000);
+}
+
+function nextRound() {
+    if (gameData.round >= MAX_ROUNDS) {
+        gameRef.update({ status: 'finished' });
+    } else {
+        gameRef.update({
+            round: gameData.round + 1,
+            roundStatus: 'playing',
+            challenge: generateChallenge(),
+            answers: null,
+            lastRoundResult: null
+        });
+    }
+}
+
+// =========================================
+// 📊 عرض النتائج
+// =========================================
+function showRoundResults() {
+    if (!gameData.answers || !gameData.answers[me.id] || !gameData.answers[opponentId]) return;
+
+    let myAns = gameData.answers[me.id];
+    let opAns = gameData.answers[opponentId];
+    let letter = gameData.challenge.letter;
+
+    let html = '<h3>نتائج الجولة:</h3>';
+    
+    const categories = [
+        { key: 'boyName', label: 'اسم ولد', type: 'boyNames' },
+        { key: 'girlName', label: 'اسم بنت', type: 'girlNames' },
+        { key: 'animal', label: 'حيوان', type: 'animals' },
+        { key: 'plant', label: 'نبات', type: 'plants' },
+        { key: 'object', label: 'جماد', type: 'objects' },
+        { key: 'country', label: 'بلاد', type: 'countries' }
+    ];
+
+    categories.forEach(cat => {
+        let mVal = myAns[cat.key];
+        let oVal = opAns[cat.key];
+        let mCheck = checkAnswer(letter, mVal, cat.type);
+        let oCheck = checkAnswer(letter, oVal, cat.type);
+
+        let mClass = mCheck ? 'correct' : 'wrong';
+        let oClass = oCheck ? 'correct' : 'wrong';
+
+        html += `
+            <div class="result-item" style="background: #f8f9fa; border: 1px solid #ddd;">
+                <div style="flex:1"><strong>${cat.label}</strong></div>
+                <div class="${mClass}" style="flex:1; padding:5px; margin:0 5px; border-radius:4px;">أنت: ${mVal}</div>
+                <div class="${oClass}" style="flex:1; padding:5px; margin:0 5px; border-radius:4px;">الخصم: ${oVal}</div>
+            </div>
+        `;
+    });
+
+    $("#resultBox").html(html).show();
+    
+    // عرض الفائز بالجولة
+    if (gameData.lastRoundResult) {
+        $("#winnerBox").html("انتهت الجولة! جاري الانتقال...").show();
+    }
+}
+
+// =========================================
+// 🏁 نهاية اللعبة
+// =========================================
+function showGameOver() {
+    $("#gameArea").hide();
+    $("#gameOverBox").show();
+    $("#endGameBtn").hide();
+
+    let myScore = gameData.players[me.id].score;
+    let opScore = gameData.players[opponentId].score;
+
+    $("#myFinalScore").text(myScore);
+    $("#opFinalScore").text(opScore);
+
+    let resultText = "";
+    let resultClass = "";
+
+    if (myScore > opScore) {
+        resultText = "🏆 مبروك! أنت الفائز!";
+        resultClass = "win";
+    } else if (opScore > myScore) {
+        resultText = "❌ حظ أوفر! الخصم فاز.";
+        resultClass = "lose";
+    } else {
+        resultText = "🤝 تعادل!";
+        resultClass = "draw";
+    }
+
+    $("#finalResult").text(resultText).removeClass().addClass("final-result " + resultClass);
+}
+
+function endGame() {
+    if (confirm("هل تريد الانسحاب؟")) {
+        gameRef.update({ status: 'finished' });
+    }
+}
+
+// =========================================
+// 🛠️ دوال مساعدة
 // =========================================
 function generateChallenge() {
     let letter = ARABIC_LETTERS[Math.floor(Math.random() * ARABIC_LETTERS.length)];
@@ -622,348 +903,19 @@ function generateChallenge() {
     };
 }
 
-// =========================================
-// 🔍 التحقق من الإجابة - محدّث
-// =========================================
 function checkAnswer(letter, answer, type) {
-    if (!answer || answer.trim() === '') return null;
-    
+    if (!answer || answer.trim() === '') return false;
     answer = answer.trim();
-    
-    // ✅ 1. تحقق من أن الإجابة تبدأ بالحرف الصحيح
     if (!answer.startsWith(letter)) return false;
-    
-    // ✅ 2. تحقق من قاعدة البيانات
-    if (VALID_ANSWERS[letter]) {
-        let validList = VALID_ANSWERS[letter][type] || [];
-        
-        // ✅ 3. تطابق تام مع القاعدة
-        return validList.includes(answer);
+    if (VALID_ANSWERS[letter] && VALID_ANSWERS[letter][type]) {
+        return VALID_ANSWERS[letter][type].includes(answer);
     }
-    
-    // ❌ إذا الحرف مش موجود في القاعدة، نرفض الإجابة
     return false;
 }
 
-// =========================================
-// 🔥 تحميل بيانات اللعبة من Firebase
-// =========================================
-function loadGameData(callback) {
-    getUser(me.id).then(user => {
-        me = user;
-        localStorage.setItem("user", JSON.stringify(me));
+// بدء اللعبة
+initGame();
 
-        me.wordGames = me.wordGames || [];
-        myGame = me.wordGames.find(g => g.id === gameId);
-
-        if (!myGame) {
-            alert("❌ لا توجد لعبة!");
-            location.href = "index.html";
-            return;
-        }
-
-        currentRound = myGame.round || 1;
-        $("#roundIndicator").text(`الجولة ${currentRound} / ${MAX_ROUNDS}`);
-        $("#myScore").text(myGame.myScore || 0);
-        $("#myName").text(me.username);
-        $("#myFinalName").text(me.username);
-
-        if (myGame.status === "invited") {
-            myGame.status = "playing";
-            myGame.round = 1;
-            myGame.myScore = 0;
-            myGame.opponentScore = 0;
-            saveGame();
-        }
-
-        if (myGame.status === "finished") {
-            showGameOver();
-            return;
-        }
-
-        if (callback) callback();
-    }).catch(err => {
-        console.error("خطأ في تحميل بيانات اللعبة:", err);
-    });
-}
-
-// =========================================
-// 🎮 عرض التحدي
-// =========================================
-function renderChallenge() {
-    getUser(opponentId).then(fr => {
-        let hisGame = fr.wordGames?.find(g => g.id === gameId);
-        
-        // إذا ما في تحدي
-        if (!myGame.challenge && (!hisGame || !hisGame.challenge)) {
-            // اللاعب الأول يولد التحدي
-            if (String(me.id) < String(opponentId)) {
-                let challenge = generateChallenge();
-                myGame.challenge = challenge;
-                myGame.myAnswers = null;
-                myGame.myAnswerTime = null;
-                saveGame();
-            } else {
-                $("#letterBox").html("⏳");
-                $("#categoryBox").text("بانتظار التحدي...");
-                return;
-            }
-        }
-        // إذا في تحدي عنده وما عندي
-        else if (!myGame.challenge && hisGame && hisGame.challenge) {
-            myGame.challenge = hisGame.challenge;
-            myGame.myAnswers = null;
-            myGame.myAnswerTime = null;
-            saveGame();
-        }
-
-        $("#letterBox").text(myGame.challenge.letter);
-        $("#categoryBox").text(myGame.challenge.category);
-
-        if (myGame.myAnswers) {
-            $("#myStatus").html("✅ أرسلت");
-            $("#submitBtn").prop("disabled", true);
-            $("input").prop("disabled", true);
-        } else {
-            $("#myStatus").html("⏳ جاري الكتابة...");
-            $("#submitBtn").prop("disabled", false);
-            $("input").prop("disabled", false);
-        }
-    }).catch(err => {
-        console.error("خطأ في عرض التحدي:", err);
-    });
-}
-
-// =========================================
-// 🔥 إرسال الإجابات
-// =========================================
-function sendAnswers() {
-    if (myGame.myAnswers) {
-        alert("لقد أرسلت إجاباتك بالفعل!");
-        return;
-    }
-
-    let answers = {
-        boyName: $("#boyName").val().trim(),
-        girlName: $("#girlName").val().trim(),
-        animal: $("#animal").val().trim(),
-        plant: $("#plant").val().trim(),
-        object: $("#object").val().trim(),
-        country: $("#country").val().trim()
-    };
-
-    myGame.myAnswers = answers;
-    myGame.myAnswerTime = Date.now();
-    
-    $("input").prop("disabled", true);
-    $("#submitBtn").prop("disabled", true);
-    $("#myStatus").html("✅ أرسلت");
-    
-    saveGame();
-}
-
-// =========================================
-// 🔥 حفظ اللعبة في Firebase
-// =========================================
-function saveGame() {
-    updateUser(me.id, { wordGames: me.wordGames }).then(() => {
-        return getUser(opponentId);
-    }).then(fr => {
-        fr.wordGames = fr.wordGames || [];
-
-        let g2 = fr.wordGames.find(g => g.id === gameId);
-
-        if (g2) {
-            g2.status = myGame.status;
-            g2.round = myGame.round;
-            g2.challenge = myGame.challenge;
-            g2.opponentAnswers = myGame.myAnswers;
-            g2.opponentAnswerTime = myGame.myAnswerTime;
-            g2.opponentScore = myGame.myScore;
-        }
-
-        return updateUser(opponentId, { wordGames: fr.wordGames });
-    }).catch(err => {
-        console.error("خطأ في حفظ اللعبة:", err);
-    });
-}
-
-// =========================================
-// 🎯 فحص الفائز
-// =========================================
-function checkWinner() {
-    getUser(opponentId).then(fr => {
-        let hisGame = fr.wordGames?.find(g => g.id === gameId);
-        if (!hisGame) return;
-
-        let myAnswers = myGame.myAnswers;
-        let opAnswers = hisGame.myAnswers;
-
-        $("#opponentScore").text(hisGame.myScore || 0);
-
-        if (opAnswers) {
-            $("#opponentStatus").html("✅ أرسل");
-        } else {
-            $("#opponentStatus").html("⏳ ينتظر...");
-        }
-
-        if (!myAnswers || !opAnswers) return;
-
-        // حساب النقاط
-        let letter = myGame.challenge.letter;
-        
-        let myPoints = 0;
-        let opPoints = 0;
-        
-        let resultsHTML = '<div class="result-box"><h3>النتائج:</h3>';
-        
-        const categories = [
-            { key: 'boyName', label: 'اسم ولد', type: 'boyNames' },
-            { key: 'girlName', label: 'اسم بنت', type: 'girlNames' },
-            { key: 'animal', label: 'حيوان', type: 'animals' },
-            { key: 'plant', label: 'نبات', type: 'plants' },
-            { key: 'object', label: 'جماد', type: 'objects' },
-            { key: 'country', label: 'بلاد', type: 'countries' }
-        ];
-
-        categories.forEach(cat => {
-            let myAns = myAnswers[cat.key];
-            let opAns = opAnswers[cat.key];
-            
-            let myCorrect = checkAnswer(letter, myAns, cat.type);
-            let opCorrect = checkAnswer(letter, opAns, cat.type);
-            
-            if (myCorrect === true && opCorrect === true) {
-                myPoints++;
-                opPoints++;
-                resultsHTML += `<div class="result-item correct">✅ ${cat.label}: أنت (${myAns}) • الخصم (${opAns})</div>`;
-            } else if (myCorrect === true) {
-                myPoints++;
-                resultsHTML += `<div class="result-item correct">✅ ${cat.label}: ${myAns}</div>`;
-            } else if (myCorrect === false) {
-                resultsHTML += `<div class="result-item wrong">❌ ${cat.label}: ${myAns || 'فارغ'} (خطأ)</div>`;
-            } else {
-                resultsHTML += `<div class="result-item empty">⚠️ ${cat.label}: فارغ</div>`;
-            }
-        });
-        
-        resultsHTML += '</div>';
-        $("#resultBox").html(resultsHTML).show();
-
-        // حساب السرعة
-        let myTime = myGame.myAnswerTime || 0;
-        let opTime = hisGame.myAnswerTime || 0;
-        
-        let speedBonus = 0;
-        let winnerBox = $("#winnerBox");
-        
-        if (myPoints > 0 && opPoints > 0 && myTime < opTime) {
-            speedBonus = 1;
-            myPoints += speedBonus;
-        }
-
-        myGame.myScore = (myGame.myScore || 0) + myPoints;
-        
-        if (myPoints > opPoints) {
-            winnerBox.html(`🏆 فزت بـ ${myPoints} نقطة!` + (speedBonus ? ' ⚡ +1 للسرعة!' : '')).removeClass().addClass("winner win").show();
-        } else if (opPoints > myPoints) {
-            winnerBox.html(`❌ الخصم فاز بـ ${opPoints} نقطة!`).removeClass().addClass("winner lose").show();
-        } else {
-            winnerBox.html(`🤝 تعادل! كل واحد ${myPoints} نقطة`).removeClass().addClass("winner draw").show();
-        }
-
-        $("#myScore").text(myGame.myScore || 0);
-
-        if (currentRound >= MAX_ROUNDS) {
-            setTimeout(() => {
-                myGame.status = "finished";
-                saveGame();
-                showGameOver();
-            }, 5000);
-        } else {
-            setTimeout(() => {
-                myGame.challenge = null;
-                myGame.round = (myGame.round || 1) + 1;
-                myGame.myAnswers = null;
-                myGame.myAnswerTime = null;
-                
-                $("input").val("").prop("disabled", false);
-                $("#submitBtn").prop("disabled", false);
-                $("#resultBox").hide();
-                $("#winnerBox").hide();
-                $("#myStatus").html("جاهز");
-                $("#opponentStatus").html("بانتظار...");
-                
-                saveGame();
-                
-                setTimeout(() => {
-                    loadGameData(renderChallenge);
-                }, 800);
-            }, 5000);
-        }
-    }).catch(err => {
-        console.error("خطأ في فحص الفائز:", err);
-    });
-}
-
-// =========================================
-// 🏁 إنهاء اللعبة
-// =========================================
-function endGame() {
-    if (!confirm("هل أنت متأكد من إنهاء اللعبة؟")) return;
-
-    myGame.status = "finished";
-    saveGame();
-    
-    setTimeout(() => {
-        showGameOver();
-    }, 500);
-}
-
-// =========================================
-// 🏆 عرض شاشة النهاية
-// =========================================
-function showGameOver() {
-    getUser(opponentId).then(fr => {
-        let hisGame = fr.wordGames?.find(g => g.id === gameId);
-        
-        let myScore = myGame.myScore || 0;
-        let opScore = hisGame?.myScore || 0;
-
-        $("#gameArea").hide();
-        $("#endGameBtn").hide();
-        $("#gameOverBox").show();
-
-        $("#myFinalScore").text(myScore);
-        $("#opFinalScore").text(opScore);
-
-        let resultBox = $("#finalResult");
-
-        if (myScore > opScore) {
-            resultBox.html("🏆 أنت الفائز!").removeClass().addClass("final-result win");
-        } else if (opScore > myScore) {
-            resultBox.html("❌ خسرت اللعبة!").removeClass().addClass("final-result lose");
-        } else {
-            resultBox.html("🤝 تعادل!").removeClass().addClass("final-result draw");
-        }
-    }).catch(err => {
-        console.error("خطأ في عرض شاشة النهاية:", err);
-    });
-}
-
-// ==============================
-// 🎯 تحديث تلقائي من Firebase
-// ==============================
-setInterval(function(){
-    if (myGame && myGame.status !== "finished") {
-        loadGameData(() => {
-            renderChallenge();
-            checkWinner();
-        });
-    }
-}, 2000);
-
-loadGameData(renderChallenge);
 
 </script>
 
