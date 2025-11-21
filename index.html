@@ -498,7 +498,8 @@
             }
             
             .search-box {
-                min-width: 100%;
+                width: 100%;
+                min-width: auto;
             }
             
             .btn-group {
@@ -526,9 +527,156 @@
             }
             
             .action-btn {
-                flex: 1;
+                width: 100%;
                 text-align: center;
-                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            html, body {
+                overflow-x: hidden;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .welcome-section h1 {
+                font-size: 22px;
+            }
+
+            .welcome-section p {
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .section {
+                padding: 15px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            .user-card {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .avatar {
+                width: 45px;
+                height: 45px;
+            }
+
+            .user-details h3 {
+                font-size: 15px;
+            }
+
+            .user-details p {
+                font-size: 12px;
+            }
+
+            .action-buttons {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .action-btn {
+                padding: 10px;
+                font-size: 13px;
+                flex: 1 1 auto; /* Allow buttons to grow/shrink */
+                min-width: 45%; /* Ensure 2 buttons per row roughly */
+            }
+        }
+
+        .admin-banner {
+            display: none;
+            background: linear-gradient(135deg, #f8961e, #ff6b35);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(248, 150, 30, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        
+        .admin-banner-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .admin-icon-circle {
+            background: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
+        }
+        
+        .admin-text h3 {
+            color: white;
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .admin-text p {
+            color: rgba(255,255,255,0.9);
+            margin: 5px 0 0 0;
+            font-size: 14px;
+        }
+        
+        .admin-action-btn {
+            background: white;
+            color: #f8961e;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 480px) {
+            .admin-banner {
+                padding: 15px;
+            }
+            
+            .admin-banner-content {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            
+            .admin-banner-info {
+                flex-direction: column;
+                margin-bottom: 15px;
+            }
+            
+            .admin-action-btn {
+                width: 100%;
+                text-align: center;
             }
         }
     </style>
@@ -537,18 +685,18 @@
 <body>
     <div class="container">
         <!-- ✅ بانر رسائل الإدارة -->
-        <div id="adminMessagesBanner" style="display: none; background: linear-gradient(135deg, #f8961e, #ff6b35); padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(248, 150, 30, 0.3); cursor: pointer; transition: all 0.3s ease;" onclick="openAdminMessagesModal()">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="background: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; animation: pulse 2s infinite;">
+        <div id="adminMessagesBanner" class="admin-banner" style="display: none;" onclick="openAdminMessagesModal()">
+            <div class="admin-banner-content">
+                <div class="admin-banner-info">
+                    <div class="admin-icon-circle">
                         👑
                     </div>
-                    <div>
-                        <h3 style="color: white; margin: 0; font-size: 18px; font-weight: 700;">رسائل الإدارة</h3>
-                        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0; font-size: 14px;">لديك <span id="adminMsgCount" style="font-weight: bold;">0</span> رسالة جديدة من الإدارة</p>
+                    <div class="admin-text">
+                        <h3>رسائل الإدارة</h3>
+                        <p>لديك <span id="adminMsgCount" style="font-weight: bold;">0</span> رسالة جديدة من الإدارة</p>
                     </div>
                 </div>
-                <div style="background: white; color: #f8961e; padding: 10px 20px; border-radius: 25px; font-weight: 700; font-size: 14px;">
+                <div class="admin-action-btn">
                     اضغط للعرض <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
                 </div>
             </div>

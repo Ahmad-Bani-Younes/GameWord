@@ -173,6 +173,7 @@ function initGame(opponentId) {
             const val = snapshot.val();
             if (!val) return;
             
+            // Update opponents
             Object.keys(val).forEach(pid => {
                 if (pid !== myId) {
                     if (!opponents[pid]) opponents[pid] = {};
@@ -194,8 +195,25 @@ function initGame(opponentId) {
                 }
             });
             
-            gameActive = true;
-            document.getElementById('waiting-screen').style.display = 'none';
+            // Check if all players are connected
+            const connectedCount = Object.values(val).filter(p => p.connected).length;
+            const totalRequired = playersList.length;
+            
+            const waitingScreen = document.getElementById('waiting-screen');
+            const waitingText = waitingScreen.querySelector('h1');
+            
+            if (connectedCount >= totalRequired) {
+                gameActive = true;
+                waitingScreen.style.display = 'none';
+            } else {
+                if (waitingText) {
+                    waitingText.innerText = `جاري انتظار اللاعبين (${connectedCount}/${totalRequired})`;
+                }
+                // Keep waiting screen visible if game hasn't started
+                if (!gameActive) {
+                    waitingScreen.style.display = 'flex';
+                }
+            }
         });
 
         // Listen for Egg Status
