@@ -549,9 +549,8 @@
 <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
 
 <!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
-<script src="firebase-data.js"></script>
-
-<script>
+    <script src="firebase-data.js"></script>
+    <script src="notifications.js"></script><script>
 
 // 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 
@@ -810,18 +809,18 @@ function createRoom() {
 function joinRoom(roomId) {
     getRoom(roomId).then(room => {
         if (room.status !== 'waiting') {
-            alert("هذه الغرفة بدأت بالفعل!");
+            showToast("هذه الغرفة بدأت بالفعل!", "warning");
             return;
         }
 
         if (room.players.some(p => p.id === String(me.id))) {
-            alert("أنت بالفعل في هذه الغرفة!");
+            showToast("أنت بالفعل في هذه الغرفة!", "info");
             return;
         }
 
         // ✅ التحقق من الدعوة للغرف الخاصة
-        if (room.isPrivate && !room.invitedPlayers.includes(String(me.id))) {
-            alert("⚠️ هذه غرفة خاصة! يجب أن تتلقى دعوة للانضمام.");
+        if (room.isPrivate && (!room.invitedPlayers || !room.invitedPlayers.includes(String(me.id)))) {
+            showToast("⚠️ هذه غرفة خاصة! يجب أن تتلقى دعوة للانضمام.", "error");
             return;
         }
 
@@ -831,13 +830,18 @@ function joinRoom(roomId) {
             score: 0
         });
 
-        return updateRoom(roomId, room);
-    }).then(() => {
-        alert("✅ تم الانضمام للغرفة!");
-        loadRooms();
+        return updateRoom(roomId, room).then(() => room);
+    }).then((room) => {
+        if (!room) return;
+        showToast("✅ تم الانضمام للغرفة!", "success");
+        setTimeout(() => {
+            if (room.gameType === 'math') location.href = "room-math.html?room=" + roomId;
+            else if (room.gameType === 'words') location.href = "room-words.html?room=" + roomId;
+            else if (room.gameType === 'egg-wars') location.href = "egg-wars.html?game=" + roomId;
+        }, 1000);
     }).catch(err => {
         console.error("خطأ في الانضمام:", err);
-        alert("حدث خطأ في الانضمام للغرفة!");
+        showToast("حدث خطأ في الانضمام للغرفة!", "error");
     });
 }
 
@@ -998,23 +1002,48 @@ function editRoom(roomId) {
 // 🔥 حذف الغرفة من Firebase
 // =========================================
 function deleteRoom(roomId) {
-    if (!confirm("هل أنت متأكد من حذف الغرفة؟")) return;
-
-    deleteRoomById(roomId).then(() => {
-        alert("تم حذف الغرفة!");
-        loadRooms();
-    }).catch(err => {
-        console.error("خطأ:", err);
-        alert("فشل حذف الغرفة!");
+    showConfirm("هل أنت متأكد من حذف الغرفة؟", () => {
+        deleteRoomById(roomId).then(() => {
+            alert("تم حذف الغرفة!");
+            loadRooms();
+        }).catch(err => {
+            console.error("خطأ:", err);
+            alert("فشل حذف الغرفة!");
+        });
     });
 }
 
 // ==============================
-// 🎯 تحديث تلقائي من Firebase
+// 🎯 تحديث تلقائي من Firebase (Real-time)
 // ==============================
-setInterval(loadRooms, 3000);
+// بدلاً من setInterval، نستخدم on('value') للاستماع للتغييرات
+firebase.database().ref('rooms').on('value', snapshot => {
+    allRooms = [];
+    snapshot.forEach(child => {
+        allRooms.push({ ...child.val(), id: child.key });
+    });
+    $("#loadingState").hide();
+    $("#roomsList").show();
+    displayRooms();
+}, err => {
+    console.error("خطأ في تحميل الغرف:", err);
+    $("#loadingState").html(`
+        <div style="color: white;">
+            <i class="fas fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px;"></i>
+            <p>حدث خطأ في تحميل الغرف!</p>
+            <button class="create-btn" onclick="location.reload()" style="margin-top: 20px;">
+                <i class="fas fa-sync"></i> إعادة المحاولة
+            </button>
+        </div>
+    `);
+});
 
-loadRooms();
+// loadRooms لم تعد ضرورية كدالة منفصلة للاستدعاء اليدوي، 
+// ولكن يمكننا الاحتفاظ بها إذا كنا نريد استخدامها في مكان ما، 
+// لكن التحديث التلقائي سيقوم بالمهمة.
+function loadRooms() {
+    // هذه الدالة فارغة الآن لأن التحديث يتم تلقائياً
+}
 
 </script>
 

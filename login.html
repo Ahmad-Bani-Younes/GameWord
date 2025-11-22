@@ -243,6 +243,7 @@
 
     <!-- ملف الفايربيس الخاص بالمشروع -->
     <script src="firebase.js"></script>
+    <script src="notifications.js"></script>
 </head>
 
 <body>
@@ -313,7 +314,7 @@
         let pass  = $("#password").val().trim();
 
         if (!email || !pass) {
-            alert("الرجاء إدخال البريد الإلكتروني وكلمة المرور!");
+            showToast("الرجاء إدخال البريد الإلكتروني وكلمة المرور!", "warning");
             return;
         }
 
@@ -369,15 +370,18 @@
             // 4️⃣ فحص إذا المستخدم أدمن
             const isAdmin = ADMIN_EMAILS.includes(userData.email) || userData.isAdmin === true;
 
-            if (isAdmin) {
-                // ✅ توجيه للـ Dashboard
-                console.log("✅ مرحباً أدمن! توجيه للـ Dashboard...");
-                window.location.href = "admin-dashboard.html";
-            } else {
-                // ✅ توجيه للصفحة الرئيسية العادية
-                console.log("✅ مرحباً مستخدم! توجيه للصفحة الرئيسية...");
-                window.location.href = "index.html";
-            }
+            showToast("تم تسجيل الدخول بنجاح!", "success");
+            setTimeout(() => {
+                if (isAdmin) {
+                    // ✅ توجيه للـ Dashboard
+                    console.log("✅ مرحباً أدمن! توجيه للـ Dashboard...");
+                    window.location.href = "admin-dashboard.html";
+                } else {
+                    // ✅ توجيه للصفحة الرئيسية العادية
+                    console.log("✅ مرحباً مستخدم! توجيه للصفحة الرئيسية...");
+                    window.location.href = "index.html";
+                }
+            }, 1000);
 
         } catch (error) {
             console.error("❌ خطأ:", error);
@@ -387,19 +391,19 @@
             $("#loading").hide();
 
             if (error.code === "auth/user-not-found") {
-                alert("هذا البريد غير مسجل!");
+                showToast("هذا البريد غير مسجل!", "error");
             }
             else if (error.code === "auth/wrong-password") {
-                alert("كلمة المرور غير صحيحة!");
+                showToast("كلمة المرور غير صحيحة!", "error");
             }
             else if (error.code === "auth/invalid-email") {
-                alert("البريد الإلكتروني غير صالح!");
+                showToast("البريد الإلكتروني غير صالح!", "error");
             }
             else if (error.code === "auth/invalid-credential") {
-                alert("البريد أو كلمة المرور غير صحيحة!");
+                showToast("البريد أو كلمة المرور غير صحيحة!", "error");
             }
             else {
-                alert("حدث خطأ أثناء تسجيل الدخول: " + error.message);
+                showToast("حدث خطأ أثناء تسجيل الدخول: " + error.message, "error");
             }
         }
     });
@@ -412,6 +416,65 @@
             $("#loginBtn").click();
         }
     });
+
+    // =========================================
+    // 🎨 UI Helper Functions
+    // =========================================
+    function showConfirm(message, onConfirm) {
+        if (confirm(message)) {
+            onConfirm();
+        }
+    }
+
+    function showAlert(message) {
+        alert(message);
+    }
+
+    function showToast(message, type = 'info') {
+        const colors = {
+            success: '#28a745',
+            error: '#dc3545',
+            warning: '#ffc107',
+            info: '#17a2b8'
+        };
+        
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${colors[type] || colors.info};
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 9999;
+            font-weight: 600;
+            animation: slideDown 0.3s ease;
+        `;
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideUp 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(0); opacity: 1; }
+            to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(styleSheet);
     </script>
 
 </body>

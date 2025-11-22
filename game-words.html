@@ -351,9 +351,8 @@
 <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
 
 <!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
-<script src="firebase-data.js"></script>
-
-<script>
+    <script src="firebase-data.js"></script>
+    <script src="notifications.js"></script><script>
 
 // 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
 const MAX_ROUNDS = 5;
@@ -887,9 +886,9 @@ function showGameOver() {
 }
 
 function endGame() {
-    if (confirm("هل تريد الانسحاب؟")) {
+    showConfirm("هل تريد الانسحاب؟", () => {
         gameRef.update({ status: 'finished' });
-    }
+    });
 }
 
 // =========================================
@@ -915,6 +914,65 @@ function checkAnswer(letter, answer, type) {
 
 // بدء اللعبة
 initGame();
+
+// =========================================
+// 🎨 UI Helper Functions
+// =========================================
+function showConfirm(message, onConfirm) {
+    if (confirm(message)) {
+        onConfirm();
+    }
+}
+
+function showAlert(message) {
+    alert(message);
+}
+
+function showToast(message, type = 'info') {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes slideDown {
+        from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(0); opacity: 1; }
+        to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    }
+`;
+document.head.appendChild(styleSheet);
 
 
 </script>

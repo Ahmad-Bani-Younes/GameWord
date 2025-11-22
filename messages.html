@@ -341,11 +341,17 @@ let currentChatUserId = null;
 let allUsers = [];
 
 // =========================================
-// 🔥 تحميل جهات الاتصال (الأصدقاء)
+// 🔥 تحميل جهات الاتصال (الأصدقاء) - Real-time
 // =========================================
-function loadContacts() {
-    getUser(me.id).then(user => {
-        const friends = user.friends || [];
+function initContactsListener() {
+    firebase.database().ref('users/' + me.id).on('value', snapshot => {
+        const user = snapshot.val();
+        if (!user) return;
+        
+        me = user;
+        localStorage.setItem("user", JSON.stringify(me));
+
+        const friends = me.friends || [];
         
         if (friends.length === 0) {
             document.getElementById('contactsContainer').innerHTML = `
@@ -358,16 +364,10 @@ function loadContacts() {
             return;
         }
 
-        return getAllUsers().then(users => {
-            allUsers = users;
-            const friendsData = friends.map(fid => 
-                users.find(u => String(u.id) === fid)
-            ).filter(f => f);
-
+        // جلب تفاصيل الأصدقاء
+        Promise.all(friends.map(fid => getUser(fid))).then(friendsData => {
             displayContacts(friendsData);
         });
-    }).catch(err => {
-        console.error("خطأ في تحميل الأصدقاء:", err);
     });
 }
 
@@ -376,11 +376,16 @@ function loadContacts() {
 // =========================================
 function displayContacts(friends) {
     const container = document.getElementById('contactsContainer');
+    // لا نمسح المحتوى بالكامل إذا كنا نريد الحفاظ على الحالة، لكن هنا سنعيد البناء للتسهيل
+    // يمكن تحسين هذا لاحقاً لتحديث العناصر الموجودة فقط
     container.innerHTML = '';
 
     friends.forEach(friend => {
+        if (!friend) return;
+        
         const contactItem = document.createElement('div');
         contactItem.className = 'contact-item';
+        contactItem.id = `contact-${friend.id}`;
         contactItem.onclick = () => openChat(friend);
 
         const avatar = friend.username.charAt(0).toUpperCase();
@@ -389,12 +394,44 @@ function displayContacts(friends) {
             <div class="contact-avatar">${avatar}</div>
             <div class="contact-info">
                 <div class="contact-name">${friend.username}</div>
-                <div class="contact-last-message">انقر للمحادثة</div>
+                <div class="contact-last-message" id="last-msg-${friend.id}">جاري التحميل...</div>
             </div>
+            <div class="unread-badge" id="badge-${friend.id}" style="display:none">0</div>
         `;
 
         container.appendChild(contactItem);
+
+        // ✅ الاستماع لآخر رسالة لهذا الصديق
+        listenToLastMessage(friend.id);
     });
+}
+
+// =========================================
+// 🔥 الاستماع لآخر رسالة
+// =========================================
+function listenToLastMessage(friendId) {
+    const chatId = getChatId(me.id, friendId);
+    
+    firebase.database().ref('chats/' + chatId + '/messages')
+        .limitToLast(1)
+        .on('value', snapshot => {
+            const lastMsgEl = document.getElementById(`last-msg-${friendId}`);
+            if (!lastMsgEl) return;
+
+            if (snapshot.exists()) {
+                let msg;
+                snapshot.forEach(child => msg = child.val());
+                
+                const isMe = String(msg.senderId) === String(me.id);
+                const prefix = isMe ? "أنت: " : "";
+                lastMsgEl.innerText = prefix + msg.text;
+                
+                // تحديث الشارة إذا كانت الرسالة جديدة ولم تقرأ (يمكن تطويره)
+                // حالياً سنكتفي بعرض النص
+            } else {
+                lastMsgEl.innerText = "ابدأ المحادثة الآن";
+            }
+        });
 }
 
 // =========================================
@@ -407,7 +444,8 @@ function openChat(friend) {
     document.querySelectorAll('.contact-item').forEach(item => {
         item.classList.remove('active');
     });
-    event.target.closest('.contact-item').classList.add('active');
+    const activeItem = document.getElementById(`contact-${friend.id}`);
+    if (activeItem) activeItem.classList.add('active');
 
     // إنشاء واجهة الشات
     const chatArea = document.getElementById('chatArea');
@@ -418,7 +456,7 @@ function openChat(friend) {
             <div class="chat-header-avatar">${avatar}</div>
             <div class="chat-header-info">
                 <h3>${friend.username}</h3>
-                <p>متصل</p>
+                <p id="friendStatus">جاري التحقق...</p>
             </div>
         </div>
         <div class="messages-container" id="messagesContainer">
@@ -432,9 +470,18 @@ function openChat(friend) {
         </div>
     `;
 
+    // الاستماع لحالة الصديق (متصل/غير متصل)
+    firebase.database().ref('users/' + friend.id + '/status').on('value', snap => {
+        const statusEl = document.getElementById('friendStatus');
+        if (statusEl) {
+            statusEl.innerText = snap.val() === 'online' ? 'متصل الآن 🟢' : 'غير متصل ⚪';
+        }
+    });
+
     // تحميل الرسائل
     loadMessages(friend.id);
 }
+
 
 // =========================================
 // 🔥 تحميل الرسائل
@@ -534,7 +581,7 @@ function getChatId(userId1, userId2) {
 }
 
 // تحميل جهات الاتصال عند بدء الصفحة
-loadContacts();
+initContactsListener();
 
 </script>
 

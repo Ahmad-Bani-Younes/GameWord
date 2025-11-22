@@ -341,10 +341,12 @@ function loadRoom() {
     roomRef.on('value', snapshot => {
         room = snapshot.val();
         if (!room) {
-            alert("الغرفة غير موجودة!");
-            location.href = "rooms.html";
+            showToast("الغرفة غير موجودة!", "error");
+            setTimeout(() => location.href = "rooms.html", 2000);
             return;
         }
+
+        console.log("🔄 تحديث بيانات الغرفة - الجولة:", room.currentRound, "الحالة:", room.status);
 
         $("#roomName").text(room.name);
         $("#roundIndicator").text(`الجولة ${room.currentRound || 0} / ${room.maxRounds}`);
@@ -364,21 +366,37 @@ function loadRoom() {
             $("#gameArea").show();
 
             if (!room.currentQuestion) {
+                $("#letterBox").text("⏳");
+                $("#categoryBox").text("بانتظار التحدي الجديد...");
+                
                 if (room.creatorId === String(me.id)) {
-                    let c = generateChallenge();
-                    roomRef.update({
-                        currentQuestion: c,
-                        answers: {}
-                    });
+                    if (!window.generatingChallenge) {
+                        window.generatingChallenge = true;
+                        console.log("🎯 المنشئ يولد تحدي جديد للجولة", room.currentRound);
+                        let c = generateChallenge();
+                        roomRef.update({
+                            currentQuestion: c,
+                            answers: {}
+                        }).then(() => {
+                            console.log("✅ تم توليد التحدي:", c.letter);
+                            window.generatingChallenge = false;
+                        }).catch(err => {
+                            console.error("❌ خطأ في توليد التحدي:", err);
+                            window.generatingChallenge = false;
+                        });
+                    }
+                } else {
+                    console.log("⏳ في انتظار المنشئ لتوليد التحدي للجولة", room.currentRound);
                 }
             } else {
                 displayChallenge();
             }
 
-            if (room.creatorId === String(me.id) && room.answers) {
+            if (room.creatorId === String(me.id) && room.answers && !window.calculating) {
                 let playersList = room.players || [];
                 let allAnswered = playersList.every(p => room.answers[p.id]);
                 if (allAnswered && playersList.length > 0) {
+                    console.log("✅ الجميع أجاب، جاري حساب النتائج...");
                     calculateScores();
                 }
             }
@@ -419,18 +437,25 @@ function displayLeaderboard() {
 }
 
 function startGame() {
-    if (!confirm("هل تريد بدء اللعبة؟")) return;
-    let c = generateChallenge();
-    roomRef.update({
-        status: 'playing',
-        currentRound: 1,
-        currentQuestion: c,
-        answers: {}
+    showConfirm("هل تريد بدء اللعبة؟", () => {
+        let c = generateChallenge();
+        roomRef.update({
+            status: 'playing',
+            currentRound: 1,
+            currentQuestion: c,
+            answers: {}
+        });
     });
 }
 
 function displayChallenge() {
-    if (!room.currentQuestion) return;
+    if (!room.currentQuestion) {
+        $("#letterBox").text("⏳");
+        $("#categoryBox").text("في انتظار التحدي...");
+        return;
+    }
+    
+    console.log("📝 عرض التحدي:", room.currentQuestion.letter, "للجولة", room.currentRound);
     $("#letterBox").text(room.currentQuestion.letter);
     $("#categoryBox").text(room.currentQuestion.category);
     
@@ -438,10 +463,12 @@ function displayChallenge() {
         $("input").prop("disabled", true);
         $("#submitBtn").prop("disabled", true);
         $("#submitBtn").text("تم إرسال الإجابات");
+        console.log("✅ لقد أجبت على هذا التحدي بالفعل");
     } else {
         $("input").prop("disabled", false);
         $("#submitBtn").prop("disabled", false);
         $("#submitBtn").text("إرسال الإجابات");
+        console.log("⏳ في انتظار إجابتك...");
     }
 }
 
@@ -468,77 +495,165 @@ function calculateScores() {
     if(window.calculating) return;
     window.calculating = true;
 
-    let l = room.currentQuestion.letter,
-        cats = [{
-            key: 'boyName',
-            type: 'boyNames'
-        }, {
-            key: 'girlName',
-            type: 'girlNames'
-        }, {
-            key: 'animal',
-            type: 'animals'
-        }, {
-            key: 'plant',
-            type: 'plants'
-        }, {
-            key: 'object',
-            type: 'objects'
-        }, {
-            key: 'country',
-            type: 'countries'
-        }],
-        scores = {},
-        fastest = {};
-        
-    room.players.forEach(p => {
-        let pd = room.answers[p.id];
-        if (!pd) return;
-        let sc = 0;
-        cats.forEach(c => {
-            let ans = pd.answers[c.key],
-                cor = checkAnswer(l, ans, c.type);
-            if (cor === true) {
-                sc++;
-                if (!fastest[c.key] || pd.time < fastest[c.key].time) fastest[c.key] = {
-                    playerId: p.id,
-                    time: pd.time
-                };
-            }
+    // ✅ جلب أحدث نسخة من الغرفة أولاً
+    getRoom(roomId).then(latestRoom => {
+        let l = latestRoom.currentQuestion.letter,
+            cats = [{
+                key: 'boyName',
+                type: 'boyNames'
+            }, {
+                key: 'girlName',
+                type: 'girlNames'
+            }, {
+                key: 'animal',
+                type: 'animals'
+            }, {
+                key: 'plant',
+                type: 'plants'
+            }, {
+                key: 'object',
+                type: 'objects'
+            }, {
+                key: 'country',
+                type: 'countries'
+            }],
+            scores = {},
+            fastest = {};
+            
+        latestRoom.players.forEach(p => {
+            let pd = latestRoom.answers[p.id];
+            if (!pd) return;
+            let sc = 0;
+            cats.forEach(c => {
+                let ans = pd.answers[c.key],
+                    cor = checkAnswer(l, ans, c.type);
+                if (cor === true) {
+                    sc++;
+                    if (!fastest[c.key] || pd.time < fastest[c.key].time) fastest[c.key] = {
+                        playerId: p.id,
+                        time: pd.time
+                    };
+                }
+            });
+            scores[p.id] = sc;
         });
-        scores[p.id] = sc;
-    });
-    
-    Object.values(fastest).forEach(f => {
-        if (f && scores[f.playerId] > 0) scores[f.playerId] += 1;
-    });
-    
-    let updatedPlayers = room.players.map(p => {
-        p.score = (p.score || 0) + (scores[p.id] || 0);
-        return p;
-    });
+        
+        Object.values(fastest).forEach(f => {
+            if (f && scores[f.playerId] > 0) scores[f.playerId] += 1;
+        });
+        
+        let updatedPlayers = latestRoom.players.map(p => {
+            p.score = (p.score || 0) + (scores[p.id] || 0);
+            return p;
+        });
 
-    let updates = {
-        players: updatedPlayers,
-        answers: null,
-        currentQuestion: null
-    };
+        let updates = {
+            players: updatedPlayers,
+            answers: null,
+            currentQuestion: null
+        };
 
-    if (room.currentRound >= room.maxRounds) {
-        updates.status = 'finished';
-    } else {
-        updates.currentRound = room.currentRound + 1;
-    }
+        if (latestRoom.currentRound >= latestRoom.maxRounds) {
+            updates.status = 'finished';
+        } else {
+            updates.currentRound = latestRoom.currentRound + 1;
+        }
 
-    roomRef.update(updates).then(() => {
+        // ✅ حفظ التحديثات على Firebase
+        return roomRef.update(updates);
+    }).then(() => {
+        // ✅ انتظر قليلاً قبل إعادة تفعيل الحساب
+        setTimeout(() => {
+            window.calculating = false;
+            window.generatingChallenge = false; // ✅ السماح بتوليد تحدي جديد
+            $("input").val("");
+            $("input").prop("disabled", false);
+            $("#submitBtn").prop("disabled", false);
+            
+            // ✅ إذا المنشئ ولا يوجد تحدي، ولّد واحد فوراً
+            getRoom(roomId).then(updatedRoom => {
+                if (updatedRoom.creatorId === String(me.id) && !updatedRoom.currentQuestion && updatedRoom.status === 'playing') {
+                    console.log("🚀 المنشئ يولد تحدي جديد فوراً للجولة", updatedRoom.currentRound);
+                    let c = generateChallenge();
+                    
+                    roomRef.update({
+                        currentQuestion: c,
+                        answers: {}
+                    }).then(() => {
+                        console.log("✅ تم توليد التحدي الجديد:", c.letter);
+                    });
+                }
+            });
+        }, 500);
+    }).catch(err => {
+        console.error("خطأ في حساب النتائج:", err);
         window.calculating = false;
-        $("input").val("");
-        $("input").prop("disabled", false);
-        $("#submitBtn").prop("disabled", false);
+        window.generatingChallenge = false;
     });
 }
 
 loadRoom();
+
+// =========================================
+// 🎨 UI Helper Functions
+// =========================================
+function showConfirm(message, onConfirm) {
+    if (confirm(message)) {
+        onConfirm();
+    }
+}
+
+function showAlert(message) {
+    alert(message);
+}
+
+function showToast(message, type = 'info') {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// إضافة CSS للأنيميشن
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes slideDown {
+        from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(0); opacity: 1; }
+        to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    }
+`;
+document.head.appendChild(styleSheet);
+
 </script>
 </body>
 </html>

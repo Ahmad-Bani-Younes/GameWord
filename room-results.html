@@ -288,10 +288,11 @@ if (!roomId) {
 }
 
 // =========================================
-// 🔥 تحميل النتائج من Firebase
+// 🔥 تحميل النتائج من Firebase (Real-time)
 // =========================================
 function loadResults() {
-    getRoom(roomId).then(room => {
+    firebase.database().ref('rooms/' + roomId).on('value', snapshot => {
+        let room = snapshot.val();
         if (!room) {
             alert("الغرفة غير موجودة!");
             location.href = "rooms.html";
@@ -301,7 +302,11 @@ function loadResults() {
         $("#roomName").text(room.name);
 
         // ترتيب اللاعبين حسب النقاط
-        room.players.sort((a, b) => (b.score || 0) - (a.score || 0));
+        if (room.players) {
+            room.players.sort((a, b) => (b.score || 0) - (a.score || 0));
+        } else {
+            room.players = [];
+        }
 
         // الفائز
         if (room.players.length > 0) {
@@ -319,13 +324,6 @@ function loadResults() {
         // إخفاء شاشة التحميل وعرض النتائج
         $("#loadingArea").hide();
         $("#resultsArea").show();
-    }).catch(err => {
-        console.error("خطأ في تحميل النتائج:", err);
-        $("#loadingArea").html(`
-            <div style="font-size: 48px; color: #f72585;">❌</div>
-            <p>حدث خطأ في تحميل النتائج!</p>
-            <button onclick="location.href='rooms.html'" style="margin-top: 20px;">رجوع للغرف</button>
-        `);
     });
 }
 

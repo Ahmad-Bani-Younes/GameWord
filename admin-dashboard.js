@@ -26,11 +26,11 @@ const ADMIN_EMAILS = [
 let currentUser = JSON.parse(localStorage.getItem("user"));
 
 if (!currentUser) {
-    alert('⛔ يجب تسجيل الدخول أولاً!');
-    location.href = 'login.html';
+    showToast('⛔ يجب تسجيل الدخول أولاً!', 'error');
+    setTimeout(() => location.href = 'login.html', 1500);
 } else if (!ADMIN_EMAILS.includes(currentUser.email)) {
-    alert('⛔ غير مصرح لك بالدخول! هذه الصفحة للمسؤولين فقط.');
-    location.href = 'index.html';
+    showToast('⛔ غير مصرح لك بالدخول! هذه الصفحة للمسؤولين فقط.', 'error');
+    setTimeout(() => location.href = 'index.html', 1500);
 } else {
     document.getElementById('adminName').textContent = currentUser.username || currentUser.email.split('@')[0];
     initDashboard();
@@ -276,7 +276,7 @@ function viewUser(userId) {
     const user = allUsers.find(u => u.id === userId);
     if (!user) return;
     
-    alert(`
+    showAlert(`
 📊 تفاصيل المستخدم:
 
 👤 الاسم: ${user.username}
@@ -289,34 +289,35 @@ function viewUser(userId) {
 }
 
 async function toggleBanUser(userId, currentBanStatus) {
-    if (!confirm(currentBanStatus ? 'إلغاء حظر هذا المستخدم؟' : 'حظر هذا المستخدم؟')) return;
-    
-    try {
-        await database.ref('users/' + userId).update({
-            banned: !currentBanStatus,
-            bannedAt: !currentBanStatus ? Date.now() : null
-        });
-        
-        logAction(currentBanStatus ? 'unban_user' : 'ban_user', { userId });
-        alert(currentBanStatus ? '✅ تم إلغاء الحظر!' : '✅ تم الحظر!');
-    } catch (error) {
-        console.error('Error:', error);
-        alert('❌ حدث خطأ: ' + error.message);
-    }
+    showConfirm(currentBanStatus ? 'إلغاء حظر هذا المستخدم؟' : 'حظر هذا المستخدم؟', async () => {
+        try {
+            await database.ref('users/' + userId).update({
+                banned: !currentBanStatus,
+                bannedAt: !currentBanStatus ? Date.now() : null
+            });
+            
+            logAction(currentBanStatus ? 'unban_user' : 'ban_user', { userId });
+            showToast(currentBanStatus ? '✅ تم إلغاء الحظر!' : '✅ تم الحظر!', 'success');
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('❌ حدث خطأ: ' + error.message, 'error');
+        }
+    });
 }
 
 async function deleteUser(userId) {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع!')) return;
-    if (!confirm('❗ تأكيد نهائي: سيتم حذف جميع بياناته!')) return;
-    
-    try {
-        await database.ref('users/' + userId).remove();
-        logAction('delete_user', { userId });
-        alert('✅ تم الحذف!');
-    } catch (error) {
-        console.error('Error:', error);
-        alert('❌ حدث خطأ: ' + error.message);
-    }
+    showConfirm('⚠️ هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع!', () => {
+        showConfirm('❗ تأكيد نهائي: سيتم حذف جميع بياناته!', async () => {
+            try {
+                await database.ref('users/' + userId).remove();
+                logAction('delete_user', { userId });
+                showToast('✅ تم الحذف!', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ حدث خطأ: ' + error.message, 'error');
+            }
+        });
+    });
 }
 
 // ========================================
@@ -462,7 +463,7 @@ function viewRoom(roomId) {
     const creator = allUsers.find(u => u.id === room.creatorId);
     const players = room.players ? room.players.map(p => p.username).join(', ') : 'لا يوجد';
     
-    alert(`
+    showAlert(`
 🏠 تفاصيل الغرفة:
 
 📝 الاسم: ${room.name}
@@ -476,16 +477,16 @@ function viewRoom(roomId) {
 }
 
 async function deleteRoom(roomId) {
-    if (!confirm('حذف هذه الغرفة؟')) return;
-    
-    try {
-        await database.ref('rooms/' + roomId).remove();
-        logAction('delete_room', { roomId });
-        alert('✅ تم الحذف!');
-    } catch (error) {
-        console.error('Error:', error);
-        alert('❌ حدث خطأ: ' + error.message);
-    }
+    showConfirm('حذف هذه الغرفة؟', async () => {
+        try {
+            await deleteRoomById(roomId);
+            logAction('delete_room', { roomId });
+            showToast('✅ تم الحذف!', 'success');
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('❌ حدث خطأ: ' + error.message, 'error');
+        }
+    });
 }
 
 // ========================================
@@ -571,25 +572,25 @@ function showSection(sectionName) {
 // 🛠️ Utility Functions
 // ========================================
 async function cleanupOldRooms() {
-    if (!confirm('حذف جميع الغرف المنتهية؟')) return;
-    
-    const oldRooms = allRooms.filter(r => r.status === 'finished');
-    
-    if (oldRooms.length === 0) {
-        alert('لا توجد غرف منتهية!');
-        return;
-    }
-    
-    try {
-        for (const room of oldRooms) {
-            await database.ref('rooms/' + room.id).remove();
+    showConfirm('حذف جميع الغرف المنتهية؟', async () => {
+        const oldRooms = allRooms.filter(r => r.status === 'finished');
+        
+        if (oldRooms.length === 0) {
+            showToast('لا توجد غرف منتهية!', 'info');
+            return;
         }
-        logAction('cleanup_rooms', { count: oldRooms.length });
-        alert(`✅ تم حذف ${oldRooms.length} غرفة!`);
-    } catch (error) {
-        console.error('Error:', error);
-        alert('❌ حدث خطأ: ' + error.message);
-    }
+        
+        try {
+            for (const room of oldRooms) {
+                await database.ref('rooms/' + room.id).remove();
+            }
+            logAction('cleanup_rooms', { count: oldRooms.length });
+            showToast(`✅ تم حذف ${oldRooms.length} غرفة!`, 'success');
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('❌ حدث خطأ: ' + error.message, 'error');
+        }
+    });
 }
 
 function exportData() {
@@ -612,7 +613,7 @@ function exportData() {
     URL.revokeObjectURL(url);
     
     logAction('export_data', { itemCount: allUsers.length + allRooms.length });
-    alert('✅ تم التصدير!');
+    showToast('✅ تم التصدير!', 'success');
 }
 
 function sendNotification() {
@@ -625,10 +626,10 @@ function sendNotification() {
         sender: 'admin'
     }).then(() => {
         logAction('send_notification', { message });
-        alert('✅ تم إرسال الإشعار!');
+        showToast('✅ تم إرسال الإشعار!', 'success');
     }).catch(error => {
         console.error('Error:', error);
-        alert('❌ حدث خطأ: ' + error.message);
+        showToast('❌ حدث خطأ: ' + error.message, 'error');
     });
 }
 
@@ -647,20 +648,21 @@ async function logAction(action, data = {}) {
 }
 
 function clearLogs() {
-    if (!confirm('مسح جميع السجلات؟')) return;
-    
-    database.ref('admin_logs').remove().then(() => {
-        alert('✅ تم المسح!');
-    }).catch(error => {
-        console.error('Error:', error);
-        alert('❌ حدث خطأ: ' + error.message);
+    showConfirm('مسح جميع السجلات؟', () => {
+        database.ref('admin_logs').remove().then(() => {
+            showToast('✅ تم المسح!', 'success');
+        }).catch(error => {
+            console.error('Error:', error);
+            showToast('❌ حدث خطأ: ' + error.message, 'error');
+        });
     });
 }
 
 function logout() {
-    if (!confirm('تسجيل الخروج؟')) return;
-    localStorage.removeItem('user');
-    location.href = 'login.html';
+    showConfirm('تسجيل الخروج؟', () => {
+        localStorage.removeItem('user');
+        location.href = 'login.html';
+    });
 }
 
 // ========================================
@@ -790,12 +792,12 @@ function sendAdminNotification() {
     const targetType = document.getElementById('notifTargetType').value;
     
     if (!title) {
-        alert("الرجاء كتابة عنوان للإشعار!");
+        showToast("الرجاء كتابة عنوان للإشعار!", "warning");
         return;
     }
     
     if (!message) {
-        alert("الرجاء كتابة نص الإشعار!");
+        showToast("الرجاء كتابة نص الإشعار!", "warning");
         return;
     }
     
@@ -808,7 +810,7 @@ function sendAdminNotification() {
         });
         
         if (targetUsers.length === 0) {
-            alert("الرجاء اختيار مستخدم واحد على الأقل!");
+            showToast("الرجاء اختيار مستخدم واحد على الأقل!", "warning");
             return;
         }
     }
@@ -824,12 +826,12 @@ function sendAdminNotification() {
     
     firebase.database().ref('notifications').push(notification)
         .then(() => {
-            alert(`✅ تم إرسال الإشعار بنجاح ${targetType === 'all' ? 'لجميع المستخدمين' : 'للمستخدمين المحددين'}!`);
+            showToast(`✅ تم إرسال الإشعار بنجاح ${targetType === 'all' ? 'لجميع المستخدمين' : 'للمستخدمين المحددين'}!`, 'success');
             clearNotificationForm();
         })
         .catch(err => {
             console.error('خطأ:', err);
-            alert('حدث خطأ في إرسال الإشعار!');
+            showToast('حدث خطأ في إرسال الإشعار!', 'error');
         });
 }
 
@@ -857,7 +859,7 @@ function sendBroadcastMessage() {
         const adminUser = users.find(u => u.email === adminEmail);
         
         if (!adminUser) {
-            alert('خطأ: لم يتم العثور على حساب الأدمن!');
+            showToast('خطأ: لم يتم العثور على حساب الأدمن!', 'error');
             return;
         }
         
@@ -895,38 +897,101 @@ function sendBroadcastMessage() {
         }).then(() => {
             return Promise.all(updatePromises);
         }).then(() => {
-            alert(`✅ تم إرسال الرسالة لـ ${regularUsers.length} مستخدم بنجاح!`);
+            showToast(`✅ تم إرسال الرسالة لـ ${regularUsers.length} مستخدم بنجاح!`, 'success');
         }).catch(err => {
             console.error('خطأ:', err);
-            alert('حدث خطأ في إرسال الرسالة!');
+            showToast('حدث خطأ في إرسال الرسالة!', 'error');
         });
     });
 }
 
-function updateAdminInboxBadge() {
+function initAdminInboxListener() {
     const adminEmail = 'byahmad338@gmail.com';
-    
-    getAllUsers().then(users => {
-        const adminUser = users.find(u => u.email === adminEmail);
-        if (!adminUser) return;
+    if (currentUser.email !== adminEmail) return;
+
+    database.ref('users/' + currentUser.id).on('value', snapshot => {
+        const user = snapshot.val();
+        if (!user) return;
         
-        const unreadCount = (adminUser.messages || []).filter(m =>
-            String(m.to) === String(adminUser.id) &&
+        const unreadCount = (user.messages || []).filter(m =>
+            String(m.to) === String(user.id) &&
             !m.seen &&
             !m.fromAdmin
         ).length;
         
         const badge = document.getElementById('adminInboxBadge');
-        if (unreadCount > 0) {
-            badge.textContent = unreadCount;
-            badge.style.display = 'inline';
-        } else {
-            badge.style.display = 'none';
+        if (badge) {
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
         }
     });
 }
 
-setInterval(updateAdminInboxBadge, 10000);
-updateAdminInboxBadge();
+initAdminInboxListener();
+
+// =========================================
+// 🎨 UI Helper Functions
+// =========================================
+
+function showConfirm(message, onConfirm) {
+    if (confirm(message)) {
+        onConfirm();
+    }
+}
+
+function showAlert(message) {
+    alert(message);
+}
+
+function showToast(message, type = 'info') {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// إضافة CSS للأنيميشن
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(0); opacity: 1; }
+        to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
 
 console.log('✅ Admin Dashboard Loaded Successfully!');

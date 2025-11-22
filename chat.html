@@ -511,10 +511,10 @@
                     let normalMessage = (String(m.from) === String(me.id) && String(m.to) === String(friendId)) ||
                                        (String(m.from) === String(friendId) && String(m.to) === String(me.id));
                     
-                    // رسائل من الأدمن (تحقق من خاصية fromAdmin وأن الرسالة موجهة لي)
-                    let adminMessage = m.fromAdmin && String(m.to) === String(me.id);
+                    // تم إصلاح المشكلة: رسائل الأدمن تظهر فقط في محادثة الأدمن
+                    // لأن normalMessage يغطي بالفعل الحالة التي يكون فيها friendId هو الأدمن
                     
-                    return normalMessage || adminMessage;
+                    return normalMessage;
                 });
 
                 // تحويل رسائل الصديق لي → إلى "مقروءة"
@@ -648,28 +648,26 @@
         // 📌 مسح المحادثة
         // ===================================================================
         function clearChat() {
-            if (!confirm('هل أنت متأكد من أنك تريد مسح كل الرسائل في هذه المحادثة؟')) {
-                return;
-            }
+            showConfirm('هل أنت متأكد من أنك تريد مسح كل الرسائل في هذه المحادثة؟', () => {
+                // مسح الرسائل من جانبي
+                getUser(me.id).then(myUser => {
+                    let myMessages = (myUser.messages || []).filter(m => 
+                        !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
+                        !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
+                    );
 
-            // مسح الرسائل من جانبي
-            getUser(me.id).then(myUser => {
-                let myMessages = (myUser.messages || []).filter(m => 
-                    !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
-                    !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
-                );
+                    updateUser(myUser.id, { messages: myMessages }).then(() => {
+                        // مسح الرسائل من جانب الصديق
+                        getUser(friendId).then(friendUser => {
+                            let hisMessages = (friendUser.messages || []).filter(m => 
+                                !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
+                                !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
+                            );
 
-                updateUser(myUser.id, { messages: myMessages }).then(() => {
-                    // مسح الرسائل من جانب الصديق
-                    getUser(friendId).then(friendUser => {
-                        let hisMessages = (friendUser.messages || []).filter(m => 
-                            !(String(m.from) === String(me.id) && String(m.to) === String(friendId)) &&
-                            !(String(m.from) === String(friendId) && String(m.to) === String(me.id))
-                        );
-
-                        updateUser(friendId, { messages: hisMessages }).then(() => {
-                            alert("تم مسح المحادثة بنجاح");
-                            loadMessages();
+                            updateUser(friendId, { messages: hisMessages }).then(() => {
+                                alert("تم مسح المحادثة بنجاح");
+                                loadMessages();
+                            });
                         });
                     });
                 });
@@ -725,31 +723,105 @@
             });
         }
 
-        // ✅ مراقبة الرسائل الجديدة
-        let lastMessageTime = 0;
+        // ===================================================================
+        // 📌 نظام التحديث اللحظي (Real-time)
+        // ===================================================================
+        
+        // 1. الاستماع لرسائلي (لتحديث الشات)
+        firebase.database().ref('users/' + me.id).on('value', snapshot => {
+            const freshMe = snapshot.val();
+            if (!freshMe) return;
+            
+            // تحديث بياناتي المحلية
+            me = freshMe;
+            localStorage.setItem("user", JSON.stringify(me));
+            
+            // تحديث الرسائل
+            loadMessages();
+        });
 
-        function smartCheck() {
-            getUser(me.id).then(freshMe => {
-                if (!freshMe) return;
-                let msgs = freshMe.messages || [];
-                if (msgs.length === 0) return;
+        // 2. الاستماع لحالة الصديق (للعنوان)
+        firebase.database().ref('users/' + friendId).on('value', snapshot => {
+            const friend = snapshot.val();
+            if (!friend) return;
+            
+            let statusText = "";
+            if (friend.isOnline) {
+                statusText = `<span class="online-dot"></span>متصل الآن`;
+            } else {
+                statusText = formatLastSeen(friend.lastSeen);
+            }
+            $(".friend-details p").html(statusText);
+            
+            // تحديث الصورة والاسم أيضاً في حال تغيرهم
+            let adminBadge = friend.email === 'byahmad338@gmail.com' ? ' 👑' : '';
+            let readOnlyBadge = isReadOnly ? ' (قراءة فقط)' : '';
+            $("#chatWith").text("الدردشة مع: " + friend.username + adminBadge + readOnlyBadge);
+            $("#friendAvatar").attr("src", friend.avatar || "https://via.placeholder.com/50");
+        });
 
-                let latest = msgs[msgs.length - 1].time;
-
-                if (latest > lastMessageTime) {
-                    lastMessageTime = latest;
-                    loadMessages();
-                }
-            });
-        }
-
-        // فحص كل 3 ثواني
-        setInterval(loadFriendStatus, 3000);
-        setInterval(smartCheck, 3000);
-
-        // أول تحميل
+        // أول تحميل (يتم الآن عبر المستمعين، لكن يمكن استدعاؤه مرة واحدة للسرعة)
         loadMessages();
         loadFriendStatus();
+
+        // =========================================
+        // 🎨 UI Helper Functions
+        // =========================================
+        function showConfirm(message, onConfirm) {
+            if (confirm(message)) {
+                onConfirm();
+            }
+        }
+
+        function showAlert(message) {
+            alert(message);
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                font-weight: 600;
+                animation: slideDown 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideUp 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes slideDown {
+                from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { transform: translateX(-50%) translateY(0); opacity: 1; }
+                to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>

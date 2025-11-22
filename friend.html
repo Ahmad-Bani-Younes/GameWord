@@ -369,6 +369,7 @@
     
     <!-- 🔥 ملف firebase-data.js اللي فيه الدوال -->
     <script src="firebase-data.js"></script>
+    <script src="notifications.js"></script>
 
     <script>
         // 🔥 التكامل مع Firebase - لا نستخدم API_URL بعد الآن
@@ -488,52 +489,109 @@
         // 4) إزالة صديق من Firebase
         // ==========================
         function removeFriend(fid) {
-            if (!confirm('هل أنت متأكد من أنك تريد إزالة هذا الصديق؟')) {
-                return;
-            }
+            showConfirm('هل أنت متأكد من أنك تريد إزالة هذا الصديق؟', () => {
+                // تعطيل الأزرار لمنع الضغط المتكرر
+                $(".btn").prop("disabled", true);
 
-            // تعطيل الأزرار لمنع الضغط المتكرر
-            $(".btn").prop("disabled", true);
+                // إزالة الصديق من قائمتي
+                let updatedFriends = (me.friends || [])
+                    .map(String)
+                    .filter(id => id !== String(fid));
 
-            // إزالة الصديق من قائمتي
-            let updatedFriends = (me.friends || [])
-                .map(String)
-                .filter(id => id !== String(fid));
+                // 🔥 تحديث بياناتي في Firebase
+                updateUser(me.id, { friends: updatedFriends })
+                    .then(() => {
+                        // 🔥 جلب بيانات الصديق
+                        return getUser(fid);
+                    })
+                    .then(friendUser => {
+                        // إزالة نفسي من قائمة أصدقائه
+                        let updatedHisFriends = (friendUser.friends || [])
+                            .map(String)
+                            .filter(id => id !== String(me.id));
 
-            // 🔥 تحديث بياناتي في Firebase
-            updateUser(me.id, { friends: updatedFriends })
-                .then(() => {
-                    // 🔥 جلب بيانات الصديق
-                    return getUser(fid);
-                })
-                .then(friendUser => {
-                    // إزالة نفسي من قائمة أصدقائه
-                    let updatedHisFriends = (friendUser.friends || [])
-                        .map(String)
-                        .filter(id => id !== String(me.id));
-
-                    // 🔥 تحديث بيانات الصديق في Firebase
-                    return updateUser(fid, { friends: updatedHisFriends });
-                })
-                .then(() => {
-                    // تحديث localStorage
-                    me.friends = updatedFriends;
-                    localStorage.setItem("user", JSON.stringify(me));
-                    
-                    alert("تم إزالته من أصدقائك بنجاح");
-                    window.location.href = "index.html";
-                })
-                .catch(err => {
-                    console.error("خطأ في إزالة الصديق:", err);
-                    alert("حدث خطأ أثناء إزالة الصديق");
-                    $(".btn").prop("disabled", false);
-                });
+                        // 🔥 تحديث بيانات الصديق في Firebase
+                        return updateUser(fid, { friends: updatedHisFriends });
+                    })
+                    .then(() => {
+                        // تحديث localStorage
+                        me.friends = updatedFriends;
+                        localStorage.setItem("user", JSON.stringify(me));
+                        
+                        alert("تم إزالته من أصدقائك بنجاح");
+                        window.location.href = "index.html";
+                    })
+                    .catch(err => {
+                        console.error("خطأ في إزالة الصديق:", err);
+                        alert("حدث خطأ أثناء إزالة الصديق");
+                        $(".btn").prop("disabled", false);
+                    });
+            });
         }
 
         // ===========================
         // 5) بدء تحميل البيانات
         // ===========================
         loadFriendProfile();
+
+        // =========================================
+        // 🎨 UI Helper Functions
+        // =========================================
+        function showConfirm(message, onConfirm) {
+            if (confirm(message)) {
+                onConfirm();
+            }
+        }
+
+        function showAlert(message) {
+            alert(message);
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                font-weight: 600;
+                animation: slideDown 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideUp 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes slideDown {
+                from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { transform: translateX(-50%) translateY(0); opacity: 1; }
+                to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>

@@ -823,6 +823,7 @@
     <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
     <script src="firebase-data.js"></script>
+    <script src="notifications.js"></script>
 
     <script>
         // إخفاء أخطاء Firebase من الكونسول
@@ -1010,9 +1011,6 @@
                 targetElement.remove();
             }
             
-            // تحديث الشارة
-            updateNotificationBadge();
-            
             // إذا لم يبقى إشعارات، أغلق النافذة
             const modal = document.getElementById('notificationsModal');
             if (modal) {
@@ -1036,6 +1034,10 @@
                         }
                         
                         return firebase.database().ref('notifications/' + notificationId).update({ readBy });
+                    })
+                    .then(() => {
+                        // تحديث الشارة بعد اكتمال التحديث في قاعدة البيانات لضمان دقة الرقم
+                        updateNotificationBadge();
                     })
                     .catch(() => {}); // تجاهل كل الأخطاء
             } catch (e) {
@@ -1217,6 +1219,27 @@
             window.location.href = `game-math.html?game=${gameId}&op=${opId}`;
         }
 
+        // ✅ دوال الرفض والإلغاء لتحديات الحساب
+        function rejectGame(gameId, opponentId) {
+            me.games = (me.games || []).filter(g => g.id !== gameId);
+
+            updateUser(me.id, { games: me.games }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    opponent.games = (opponent.games || []).filter(g => g.id !== gameId);
+                    updateUser(opponentId, { games: opponent.games }).then(() => {
+                        alert("تم رفض التحدي");
+                        loadData();
+                    });
+                });
+            });
+        }
+
+        function cancelGame(gameId, opponentId) {
+            showConfirm('هل أنت متأكد من إلغاء التحدي؟', () => {
+                rejectGame(gameId, opponentId);
+            });
+        }
+
         function loadWordChallenges(users) {
             let container = $("#wordChallengesList").html("");
             let friends = (me.friends || []).map(String);
@@ -1364,6 +1387,27 @@
 
         function startWordGame(gameId, opponentId) {
             location.href = "game-words.html?game=" + gameId + "&op=" + opponentId;
+        }
+
+        // ✅ دوال الرفض والإلغاء لتحديات الكلمات
+        function rejectWordGame(gameId, opponentId) {
+            me.wordGames = (me.wordGames || []).filter(g => g.id !== gameId);
+
+            updateUser(me.id, { wordGames: me.wordGames }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    opponent.wordGames = (opponent.wordGames || []).filter(g => g.id !== gameId);
+                    updateUser(opponentId, { wordGames: opponent.wordGames }).then(() => {
+                        alert("تم رفض تحدي الكلمات");
+                        loadData();
+                    });
+                });
+            });
+        }
+
+        function cancelWordGame(gameId, opponentId) {
+            showConfirm('هل أنت متأكد من إلغاء التحدي؟', () => {
+                rejectWordGame(gameId, opponentId);
+            });
         }
 
         function loadEggWarsChallenges(users) {
@@ -1524,30 +1568,52 @@
         }
 
         function cancelEggWars(gameId, opponentId) {
-            if (!confirm('هل أنت متأكد من إلغاء التحدي؟')) return;
-            rejectEggWars(gameId, opponentId);
+            showConfirm('هل أنت متأكد من إلغاء التحدي؟', () => {
+                rejectEggWars(gameId, opponentId);
+            });
         }
 
-        function loadData() {
-            getAllUsers().then(users => {
-                users.forEach(u => u.id = String(u.id));
+        // =========================================
+        // 🔥 نظام التحديث اللحظي (Real-time)
+        // =========================================
+        
+        // دالة لتحديث الواجهة عند وصول بيانات جديدة
+        function updateUI(users) {
+            users.forEach(u => u.id = String(u.id));
 
-                me = users.find(u => u.id === String(me.id));
+            // تحديث بيانات المستخدم الحالي
+            const updatedMe = users.find(u => u.id === String(me.id));
+            if (updatedMe) {
+                me = updatedMe;
                 localStorage.setItem("user", JSON.stringify(me));
+            }
 
-                loadFriendRequests(users);
-                loadSentRequests(users);
-                loadSuggestions(users);
-                loadFriends(users);
-                loadMathChallenges(users);
-                loadEggWarsChallenges(users);
-                loadWordChallenges(users);
-                loadEggWarsChallenges(users);
-                loadAdminMessages(users);
+            loadFriendRequests(users);
+            loadSentRequests(users);
+            loadSuggestions(users);
+            loadFriends(users);
+            loadMathChallenges(users);
+            loadEggWarsChallenges(users);
+            loadWordChallenges(users);
+            loadAdminMessages(users);
 
-                $("#pendingCount").text(me.pending?.length || 0);
-                updateNotificationBadge();
+            $("#pendingCount").text(me.pending?.length || 0);
+            updateNotificationBadge();
+        }
+
+        // الاستماع للتغييرات في قاعدة البيانات
+        firebase.database().ref('users').on('value', snapshot => {
+            const users = [];
+            snapshot.forEach(child => {
+                users.push({ ...child.val(), id: child.key });
             });
+            updateUI(users);
+        });
+
+        // دالة loadData القديمة لم تعد ضرورية لأن التحديث تلقائي
+        // نتركها فارغة لكي لا تسبب أخطاء في الأزرار التي تستدعيها
+        function loadData() {
+            console.log("Data updated automatically via Firebase Real-time listener");
         }
 
         // ✅ تحميل رسائل الأدمن
@@ -2043,12 +2109,71 @@
             window.location.href = "login.html";
         }
 
-        // ✅ تحديث دوري
-        setInterval(() => {
-            updateNotificationBadge();
-        }, 10000);
+        // ✅ تحديث دوري - تم استبداله بالمستمع في updateUI
+        // setInterval(() => {
+        //    updateNotificationBadge();
+        // }, 10000);
 
         loadData();
+
+        // =========================================
+        // 🎨 UI Helper Functions
+        // =========================================
+        function showConfirm(message, onConfirm) {
+            if (confirm(message)) {
+                onConfirm();
+            }
+        }
+
+        function showAlert(message) {
+            alert(message);
+        }
+
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107',
+                info: '#17a2b8'
+            };
+            
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                font-weight: 600;
+                animation: slideDown 0.3s ease;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideUp 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes slideDown {
+                from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { transform: translateX(-50%) translateY(0); opacity: 1; }
+                to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>

@@ -528,8 +528,8 @@ function loadUsers() {
         adminUser = users.find(u => u.email === adminEmail);
         
         if (!adminUser) {
-            alert('خطأ: لم يتم العثور على حساب الأدمن!');
-            window.location.href = 'admin-dashboard.html';
+            showToast('خطأ: لم يتم العثور على حساب الأدمن!', 'error');
+            setTimeout(() => window.location.href = 'admin-dashboard.html', 1500);
             return;
         }
 
@@ -726,7 +726,7 @@ function sendMessage() {
         loadMessages(currentChatUserId);
     }).catch(err => {
         console.error('خطأ:', err);
-        alert('حدث خطأ في إرسال الرسالة!');
+        showToast('حدث خطأ في إرسال الرسالة!', 'error');
     });
 }
 
@@ -745,7 +745,7 @@ function editAdminMessage(messageIndex, messageTime) {
         );
 
         if (!msgToEdit) {
-            alert('لم يتم العثور على الرسالة!');
+            showToast('لم يتم العثور على الرسالة!', 'error');
             return;
         }
 
@@ -776,11 +776,11 @@ function editAdminMessage(messageIndex, messageTime) {
                 return updateUser(currentChatUserId, { messages: userMessages });
             }
         }).then(() => {
-            alert('✅ تم تعديل الرسالة بنجاح!');
+            showToast('✅ تم تعديل الرسالة بنجاح!', 'success');
             loadMessages(currentChatUserId);
         }).catch(err => {
             console.error('خطأ:', err);
-            alert('❌ حدث خطأ في تعديل الرسالة!');
+            showToast('❌ حدث خطأ في تعديل الرسالة!', 'error');
         });
     });
 }
@@ -791,37 +791,35 @@ function editAdminMessage(messageIndex, messageTime) {
 function deleteAdminMessage(messageIndex, messageTime) {
     if (!currentChatUserId) return;
 
-    if (!confirm('هل أنت متأكد من حذف هذه الرسالة؟\nسيتم حذفها من جميع المستخدمين!')) {
-        return;
-    }
-
-    getUser(adminUser.id).then(admin => {
-        const adminMessages = admin.messages || [];
-        const filteredAdminMessages = adminMessages.filter(m => 
-            !(String(m.to) === String(currentChatUserId) && 
-              m.time === Number(messageTime) &&
-              m.fromAdmin)
-        );
-
-        return updateUser(adminUser.id, { messages: filteredAdminMessages });
-    }).then(() => {
-        // حذف الرسالة من رسائل المستخدم
-        return getUser(currentChatUserId);
-    }).then(user => {
-        const userMessages = user.messages || [];
-        const filteredUserMessages = userMessages.filter(m => 
-            !(String(m.from) === String(adminUser.id) && 
-              m.time === Number(messageTime) &&
-              m.fromAdmin)
-        );
-
-        return updateUser(currentChatUserId, { messages: filteredUserMessages });
-    }).then(() => {
-        alert('✅ تم حذف الرسالة بنجاح!');
-        loadMessages(currentChatUserId);
-    }).catch(err => {
-        console.error('خطأ:', err);
-        alert('❌ حدث خطأ في حذف الرسالة!');
+    showConfirm('هل أنت متأكد من حذف هذه الرسالة؟\nسيتم حذفها من جميع المستخدمين!', () => {
+        getUser(adminUser.id).then(admin => {
+            const adminMessages = admin.messages || [];
+            const filteredAdminMessages = adminMessages.filter(m => 
+                !(String(m.to) === String(currentChatUserId) && 
+                  m.time === Number(messageTime) &&
+                  m.fromAdmin)
+            );
+    
+            return updateUser(adminUser.id, { messages: filteredAdminMessages });
+        }).then(() => {
+            // حذف الرسالة من رسائل المستخدم
+            return getUser(currentChatUserId);
+        }).then(user => {
+            const userMessages = user.messages || [];
+            const filteredUserMessages = userMessages.filter(m => 
+                !(String(m.from) === String(adminUser.id) && 
+                  m.time === Number(messageTime) &&
+                  m.fromAdmin)
+            );
+    
+            return updateUser(currentChatUserId, { messages: filteredUserMessages });
+        }).then(() => {
+            showToast('✅ تم حذف الرسالة بنجاح!', 'success');
+            loadMessages(currentChatUserId);
+        }).catch(err => {
+            console.error('خطأ:', err);
+            showToast('❌ حدث خطأ في حذف الرسالة!', 'error');
+        });
     });
 }
 
@@ -872,7 +870,7 @@ function sendNotification(event) {
     const targetType = document.getElementById('targetType').value;
 
     if (!title || !message) {
-        alert('يرجى ملء جميع الحقول!');
+        showToast('يرجى ملء جميع الحقول!', 'warning');
         return;
     }
 
@@ -882,7 +880,7 @@ function sendNotification(event) {
         const checkboxes = document.querySelectorAll('#targetUsersContainer input[type="checkbox"]:checked');
         
         if (checkboxes.length === 0) {
-            alert('يرجى اختيار مستخدم واحد على الأقل!');
+            showToast('يرجى اختيار مستخدم واحد على الأقل!', 'warning');
             return;
         }
 
@@ -902,12 +900,12 @@ function sendNotification(event) {
 
     firebase.database().ref('notifications').push(notificationData)
         .then(() => {
-            alert('✅ تم إرسال الإشعار بنجاح!');
+            showToast('✅ تم إرسال الإشعار بنجاح!', 'success');
             closeNotificationModal();
         })
         .catch(err => {
             console.error('خطأ:', err);
-            alert('❌ حدث خطأ في إرسال الإشعار!');
+            showToast('❌ حدث خطأ في إرسال الإشعار!', 'error');
         });
 }
 
@@ -919,15 +917,135 @@ window.onclick = function(event) {
     }
 }
 
-// تحديث تلقائي
-setInterval(() => {
-    if (currentChatUserId) {
-        loadMessages(currentChatUserId);
-    }
-    loadUsers();
-}, 3000);
+// =========================================
+// 🔥 تحميل المستخدمين والرسائل (Real-time)
+// =========================================
+function initAdminListeners() {
+    // الاستماع لجميع المستخدمين
+    firebase.database().ref('users').on('value', snapshot => {
+        const users = [];
+        snapshot.forEach(child => {
+            users.push({ ...child.val(), id: child.key });
+        });
 
-loadUsers();
+        adminUser = users.find(u => u.email === adminEmail);
+        
+        if (!adminUser) {
+            showToast('خطأ: لم يتم العثور على حساب الأدمن!', 'error');
+            setTimeout(() => window.location.href = 'admin-dashboard.html', 1500);
+            return;
+        }
+
+        allUsers = users.filter(u => u.email !== adminEmail);
+        displayUsers(allUsers);
+        loadUserCheckboxes(allUsers);
+
+        // إذا كانت هناك محادثة مفتوحة، قم بتحديثها
+        if (currentChatUserId) {
+            updateCurrentChat();
+        }
+    });
+}
+
+function updateCurrentChat() {
+    if (!adminUser || !currentChatUserId) return;
+
+    const messages = (adminUser.messages || []).filter(m =>
+        (String(m.from) === String(adminUser.id) && String(m.to) === currentChatUserId) ||
+        (String(m.from) === currentChatUserId && String(m.to) === String(adminUser.id))
+    );
+
+    // تحديث حالة القراءة
+    let changed = false;
+    messages.forEach(m => {
+        if (String(m.from) === currentChatUserId && String(m.to) === String(adminUser.id) && !m.seen) {
+            m.seen = true;
+            changed = true;
+        }
+    });
+
+    if (changed) {
+        // نستخدم update لتجنب إعادة تحميل الصفحة بالكامل إذا كان ذلك ممكناً
+        // لكن هنا سنقوم بالتحديث فقط
+        updateUser(adminUser.id, { messages: adminUser.messages });
+    }
+
+    displayMessages(messages);
+}
+
+// تم استبدال loadUsers و loadMessages بالمستمعين
+// loadUsers(); 
+initAdminListeners();
+
+// دالة loadMessages القديمة لم تعد تستخدم بشكل مباشر، بل updateCurrentChat
+function loadMessages(userId) {
+    // هذه الدالة بقيت فقط للتوافق إذا تم استدعاؤها من مكان آخر
+    // لكن التحديث الحقيقي يتم عبر المستمع
+    currentChatUserId = userId;
+    updateCurrentChat();
+}
+
+// إزالة setInterval
+// setInterval(() => { ... }, 3000);
+
+// =========================================
+// 🎨 UI Helper Functions
+// =========================================
+function showConfirm(message, onConfirm) {
+    if (confirm(message)) {
+        onConfirm();
+    }
+}
+
+function showAlert(message) {
+    alert(message);
+}
+
+function showToast(message, type = 'info') {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes slideDown {
+        from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(0); opacity: 1; }
+        to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    }
+`;
+document.head.appendChild(styleSheet);
 
 </script>
 

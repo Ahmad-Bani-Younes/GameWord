@@ -216,6 +216,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script src="firebase.js"></script>
+<script src="notifications.js"></script>
 
 </head>
 
@@ -398,7 +399,7 @@ $("#registerBtn").click(async function () {
     let pass     = $("#password").val().trim();
 
     if (!username || !email || !pass) {
-        alert("الرجاء تعبئة جميع الحقول!");
+        showToast("الرجاء تعبئة جميع الحقول!", "warning");
         return;
     }
 
@@ -421,20 +422,20 @@ $("#registerBtn").click(async function () {
             createdAt: Date.now()
         });
 
-        alert("تم إنشاء الحساب بنجاح!");
-        window.location.href = "login.html";
+        showToast("تم إنشاء الحساب بنجاح!", "success");
+        setTimeout(() => window.location.href = "login.html", 1500);
 
     } catch (error) {
         console.log(error);
 
         if (error.code === "auth/email-already-in-use") {
-            alert("هذا البريد الإلكتروني مستخدم بالفعل!");
+            showToast("هذا البريد الإلكتروني مستخدم بالفعل!", "error");
         } else if (error.code === "auth/invalid-email") {
-            alert("البريد الإلكتروني غير صالح!");
+            showToast("البريد الإلكتروني غير صالح!", "error");
         } else if (error.code === "auth/weak-password") {
-            alert("كلمة المرور ضعيفة! يجب أن تكون 6 أحرف على الأقل.");
+            showToast("كلمة المرور ضعيفة! يجب أن تكون 6 أحرف على الأقل.", "warning");
         } else {
-            alert("حدث خطأ أثناء إنشاء الحساب!");
+            showToast("حدث خطأ أثناء إنشاء الحساب!", "error");
         }
     }
 });
@@ -451,6 +452,65 @@ $(document).keypress(function(event) {
         $("#registerBtn").click();
     }
 });
+
+// =========================================
+// 🎨 UI Helper Functions
+// =========================================
+function showConfirm(message, onConfirm) {
+    if (confirm(message)) {
+        onConfirm();
+    }
+}
+
+function showAlert(message) {
+    alert(message);
+}
+
+function showToast(message, type = 'info') {
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-weight: 600;
+        animation: slideDown 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `
+    @keyframes slideDown {
+        from { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translateX(-50%) translateY(0); opacity: 1; }
+        to { transform: translateX(-50%) translateY(-100px); opacity: 0; }
+    }
+`;
+document.head.appendChild(styleSheet);
 
 </script>
 
