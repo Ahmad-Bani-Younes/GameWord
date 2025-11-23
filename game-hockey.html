@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>🏒 هوكي الجليد</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            height: -webkit-fill-available;
+        }
+
+        .game-container {
+            position: relative;
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.3);
+            overflow: hidden;
+            background: #000000;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+            background: #000000;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-size: clamp(24px, 8vw, 48px);
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .player-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-name {
+            font-size: clamp(10px, 3vw, 16px);
+            margin-bottom: 5px;
+            color: #a0a0a0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .controls-hint {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: clamp(10px, 2.5vw, 14px);
+            margin-bottom: 5px;
+            padding: 0 10px;
+        }
+
+        .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .game-over-title {
+            font-size: clamp(24px, 8vw, 48px);
+            margin-bottom: 20px;
+            color: #e94560;
+            text-shadow: 0 0 20px #e94560;
+        }
+
+        .winner-text {
+            font-size: clamp(16px, 5vw, 24px);
+            margin-bottom: 30px;
+            color: #4cc9f0;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: clamp(8px, 2vw, 12px) clamp(15px, 5vw, 30px);
+            border: none;
+            border-radius: 25px;
+            font-size: clamp(12px, 3.5vw, 18px);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(233, 69, 96, 0.8);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #4cc9f0;
+            color: #4cc9f0;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(76, 201, 240, 0.1);
+        }
+
+        .loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(233, 69, 96, 0.3);
+            border-top: 5px solid #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .controls-hint { 
+                font-size: 9px;
+                margin-bottom: 2px;
+            }
+            .controls-hint > div {
+                flex-direction: row;
+                gap: 5px !important;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .controls-hint .btn {
+                font-size: 10px !important;
+                padding: 5px 10px !important;
+            }
+            .game-container {
+                border-radius: 0;
+                border: none;
+            }
+            body {
+                padding: 0;
+            }
+            .ui-layer {
+                padding: 5px;
+            }
+            .score-board {
+                gap: 20px;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .score-board {
+                gap: 15px;
+                font-size: clamp(18px, 6vw, 36px) !important;
+            }
+            .ui-layer {
+                padding: 5px;
+            }
+            .controls-hint {
+                font-size: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container" id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <div class="ui-layer">
+            <div class="score-board">
+                <div class="player-score">
+                    <span class="player-name" id="player1Name">أنت</span>
+                    <span id="score2">0</span>
+                </div>
+                <div class="player-score">
+                    <span class="player-name" style="font-size: clamp(14px, 4vw, 20px); color: #ffff00; text-shadow: 0 0 10px #ffff00;" id="timerDisplay">1:00</span>
+                </div>
+                <div class="player-score">
+                    <span class="player-name" id="player2Name">الخصم</span>
+                    <span id="score1">0</span>
+                </div>
+            </div>
+            
+            <div class="controls-hint">
+                استخدم الماوس للتحكم بالمضرب أو الأسهم (↑↓←→) / (WASD)
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn btn-secondary" onclick="quitGame()" style="pointer-events: auto; padding: 8px 15px; font-size: 13px;">
+                        <i class="fas fa-sign-out-alt"></i> الخروج
+                    </button>
+                    <button class="btn btn-secondary" onclick="surrenderGame()" style="pointer-events: auto; padding: 8px 15px; font-size: 13px; background: #e94560; border-color: #e94560;">
+                        <i class="fas fa-flag-checkered"></i> استسلم (خسارة)
+                    </button>
+                </div>
+                <div style="margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.4);" id="statsDisplay">
+                    الضربات: <span id="totalHitsSpan">0</span> | أطول تبادل: <span id="longestRallySpan">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-over-screen" id="gameOverScreen">
+            <div class="game-over-title">انتهت المباراة!</div>
+            <div class="winner-text" id="winnerText"></div>
+            <div>
+                <button class="btn btn-primary" onclick="restartGame()">
+                    <i class="fas fa-redo"></i> لعب مجدداً
+                </button>
+                <button class="btn btn-secondary" onclick="location.href='index.html'">
+                    <i class="fas fa-home"></i> الرئيسية
+                </button>
+            </div>
+        </div>
+
+        <div class="loading-screen" id="loadingScreen">
+            <div class="spinner"></div>
+            <h3 id="loadingText">جاري الاتصال بالخادم...</h3>
+            <button id="startGameBtn" class="btn btn-primary" style="display: none; margin-top: 20px;" onclick="hostStartGame()">
+                <i class="fas fa-play"></i> ابدأ اللعب
+            </button>
+            <button class="btn btn-secondary" onclick="forceQuit()" style="margin-top: 15px; font-size: 14px;">
+                <i class="fas fa-home"></i> العودة للرئيسية
+            </button>
+            <button class="btn btn-secondary" onclick="deleteAndRestart()" style="margin-top: 10px; font-size: 13px; background: #f8961e; border-color: #f8961e;">
+                <i class="fas fa-trash"></i> حذف اللعبة وإعادة البدء
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.19.1/firebase-auth.js"></script>
+    <script src="firebase-data.js"></script>
+
+    <script>
+        // Game Constants
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 500;
+        const PADDLE_RADIUS = 25;
+        const BALL_SIZE = 10;
+        const WIN_SCORE = 7;
+        const GAME_TIME = 60; // 60 seconds
+        
+        // Game State
+        let canvas, ctx;
+        let me, opponent;
+        let gameId, opponentId;
+        let isHost = false;
+        let gameLoop;
+        let lastTime = 0;
+        let gameTimer = GAME_TIME;
+        let timerInterval = null;
+        let gameStartTime = null;
+        
+        // Effects
+        let particles = [];
+        let ballTrail = [];
+        let screenShake = 0;
+        let goalEffect = null;
+        let comboHits = 0;
+        let lastHitTime = 0;
+        let speedIndicator = 0;
+        let comboDisplay = { count: 0, alpha: 0 };
+        let speedLines = [];
+        let freezeFrames = 0;
+        
+        // Statistics
+        let stats = {
+            p1Hits: 0,
+            p2Hits: 0,
+            maxSpeed: 0,
+            totalHits: 0,
+            longestRally: 0,
+            currentRally: 0
+        };
+        
+        // Sound effects (using Web Audio API)
+        let audioContext = null;
+        
+        function playSound(frequency, duration, type = 'sine') {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch(e) {
+                    return; // Audio not supported
+                }
+            }
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        let gameState = {
+            p1X: CANVAS_WIDTH / 4,
+            p1Y: CANVAS_HEIGHT / 2,
+            p2X: CANVAS_WIDTH * 3 / 4,
+            p2Y: CANVAS_HEIGHT / 2,
+            ballX: CANVAS_WIDTH / 2,
+            ballY: CANVAS_HEIGHT / 2,
+            ballVX: 0,
+            ballVY: 0,
+            score1: 0,
+            score2: 0,
+            status: 'waiting'
+        };
+
+        // Initialization
+        window.onload = function() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d', { 
+                alpha: false,
+                desynchronized: true
+            });
+            
+            // Responsive Canvas
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(resizeCanvas, 100);
+            });
+
+            // منع السكرول على الموبايل
+            document.body.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            // Auth Check
+            me = JSON.parse(localStorage.getItem("user"));
+            if (!me) location.href = "login.html";
+
+            // URL Params
+            const params = new URLSearchParams(location.search);
+            gameId = params.get('game');
+            opponentId = params.get('op');
+            
+            if (!gameId || !opponentId) {
+                alert("رابط اللعبة غير صحيح!");
+                location.href = "index.html";
+                return;
+            }
+
+            // Setup Controls
+            setupControls();
+            
+            // Connect to Firebase
+            initFirebase();
+        };
+
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            const aspect = CANVAS_WIDTH / CANVAS_HEIGHT;
+            
+            // حساب المساحة المتاحة
+            const availableWidth = window.innerWidth;
+            const availableHeight = window.innerHeight;
+            
+            let width, height;
+            
+            // للموبايل - استخدام الشاشة الكاملة
+            if (window.innerWidth <= 768) {
+                width = availableWidth;
+                height = availableHeight;
+                
+                // اختيار الأنسب حسب نسبة العرض
+                const screenAspect = availableWidth / availableHeight;
+                if (screenAspect > aspect) {
+                    // الشاشة عريضة - استخدم الارتفاع الكامل
+                    height = availableHeight;
+                    width = height * aspect;
+                } else {
+                    // الشاشة طويلة - استخدم العرض الكامل
+                    width = availableWidth;
+                    height = width / aspect;
+                }
+            } else {
+                // للكمبيوتر والتابلت
+                width = Math.min(availableWidth - 40, 800);
+                height = width / aspect;
+                
+                if (height > availableHeight - 100) {
+                    height = availableHeight - 100;
+                    width = height * aspect;
+                }
+            }
+
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+        }
+
+        function setupControls() {
+            // Mouse Movement
+            window.addEventListener('mousemove', (e) => {
+                if (gameState.status !== 'playing') return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = CANVAS_WIDTH / rect.width;
+                const scaleY = CANVAS_HEIGHT / rect.height;
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+                updateMyPaddle(mouseX, mouseY);
+            });
+
+            // Touch Movement - محسّن للموبايل
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (gameState.status !== 'playing') return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const scaleX = CANVAS_WIDTH / rect.width;
+                const scaleY = CANVAS_HEIGHT / rect.height;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+                updateMyPaddle(touchX, touchY);
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            // Keyboard Controls
+            window.addEventListener('keydown', (e) => {
+                if (gameState.status !== 'playing') return;
+                const speed = 20;
+                const xKey = isHost ? 'p1X' : 'p2X';
+                const yKey = isHost ? 'p1Y' : 'p2Y';
+                let currentX = gameState[xKey];
+                let currentY = gameState[yKey];
+
+                if (e.key === 'ArrowUp' || e.key === 'w') {
+                    e.preventDefault();
+                    updateMyPaddle(currentX, currentY - speed);
+                } else if (e.key === 'ArrowDown' || e.key === 's') {
+                    e.preventDefault();
+                    updateMyPaddle(currentX, currentY + speed);
+                } else if (e.key === 'ArrowLeft' || e.key === 'a') {
+                    e.preventDefault();
+                    updateMyPaddle(currentX - speed, currentY);
+                } else if (e.key === 'ArrowRight' || e.key === 'd') {
+                    e.preventDefault();
+                    updateMyPaddle(currentX + speed, currentY);
+                }
+            });
+        }
+
+        function updateMyPaddle(x, y) {
+            // حدود الملعب - كل لاعب يتحرك في كامل نصفه
+            y = Math.max(PADDLE_RADIUS, Math.min(CANVAS_HEIGHT - PADDLE_RADIUS, y));
+            
+            // حدود المرامي - كل لاعب لا يتجاوز خط المنتصف العمودي
+            if (isHost) {
+                // P1 (Host) - في النصف الأيسر فقط - من الحافة للمنتصف
+                x = Math.max(PADDLE_RADIUS, Math.min(CANVAS_WIDTH / 2, x));
+                gameState.p1X = x;
+                gameState.p1Y = y;
+            } else {
+                // P2 (Guest) - في النصف الأيمن فقط - من المنتصف للحافة
+                x = Math.max(CANVAS_WIDTH / 2, Math.min(CANVAS_WIDTH - PADDLE_RADIUS, x));
+                gameState.p2X = x;
+                gameState.p2Y = y;
+            }
+
+            const updates = {};
+            if (isHost) {
+                updates.p1X = x;
+                updates.p1Y = y;
+            } else {
+                updates.p2X = x;
+                updates.p2Y = y;
+            }
+            firebase.database().ref(`hockey_games/${gameId}`).update(updates);
+        }
+
+        function initFirebase() {
+            isHost = String(me.id) < String(opponentId);
+            console.log("✅ اللعبة جاهزة - أنت:", isHost ? "المضيف" : "الضيف");
+
+            startGameSession();
+
+            getUser(opponentId).then(user => {
+                if (user) {
+                    opponent = user;
+                    updatePlayerNames();
+                }
+            });
+        }
+
+        function updatePlayerNames() {
+            const p1Name = isHost ? me.username : (opponent ? opponent.username : "الخصم");
+            const p2Name = isHost ? (opponent ? opponent.username : "الخصم") : me.username;
+            
+            document.getElementById('player1Name').textContent = p1Name;
+            document.getElementById('player2Name').textContent = p2Name;
+        }
+
+        function startGameSession() {
+            updatePlayerNames();
+
+            // Set timeout to detect connection issues
+            let connectionTimeout = setTimeout(() => {
+                console.error("⏱️ Connection timeout");
+                document.getElementById('loadingText').textContent = "فشل الاتصال. اضغط 'العودة للرئيسية' لإنهاء اللعبة.";
+                document.querySelector('.spinner').style.display = 'none';
+            }, 5000); // 5 seconds
+
+            const gameRef = firebase.database().ref(`hockey_games/${gameId}`);
+            
+            // Add error handler
+            gameRef.on('value', (snapshot) => {
+                clearTimeout(connectionTimeout);
+                const data = snapshot.val();
+                console.log("📥 Game data received:", data);
+
+                if (data) {
+                    // Sync State
+                    if (!isHost) {
+                        // Guest syncs P1 paddle position and ball
+                        gameState.p1X = data.p1X || gameState.p1X;
+                        gameState.p1Y = data.p1Y || gameState.p1Y;
+                        gameState.ballX = data.ballX || gameState.ballX;
+                        gameState.ballY = data.ballY || gameState.ballY;
+                        gameState.ballVX = data.ballVX || gameState.ballVX;
+                        gameState.ballVY = data.ballVY || gameState.ballVY;
+                        gameState.score1 = data.score1 || 0;
+                        gameState.score2 = data.score2 || 0;
+                        
+                        // مزامنة الوقت
+                        if (data.timeLeft !== undefined) {
+                            gameTimer = data.timeLeft;
+                            const minutes = Math.floor(gameTimer / 60);
+                            const seconds = gameTimer % 60;
+                            document.getElementById('timerDisplay').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        }
+                    } else {
+                        // Host syncs P2 paddle position
+                        gameState.p2X = data.p2X || gameState.p2X;
+                        gameState.p2Y = data.p2Y || gameState.p2Y;
+                    }
+
+                    // Check Game Status
+                    if (data.status === 'finished') {
+                        clearTimeout(connectionTimeout);
+                        endGame(data.winner);
+                    } else if (data.status === 'playing') {
+                        clearTimeout(connectionTimeout);
+                        gameState.status = 'playing';
+                        console.log("🎮 Starting game loop...");
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        document.getElementById('gameOverScreen').style.display = 'none';
+                        if (!gameLoop) startGameLoop();
+                    } else if (data.status === 'ready') {
+                        clearTimeout(connectionTimeout);
+                        gameState.status = 'ready';
+                        console.log("⏸️ Game ready, waiting for start...");
+                        document.getElementById('loadingScreen').style.display = 'flex';
+                        document.querySelector('.spinner').style.display = 'none';
+                        
+                        if (isHost) {
+                            document.getElementById('loadingText').textContent = "اضغط للبدء عندما تكون جاهزاً";
+                            document.getElementById('startGameBtn').style.display = 'flex';
+                        } else {
+                            document.getElementById('loadingText').textContent = "بانتظار المضيف لبدء اللعبة...";
+                            document.getElementById('startGameBtn').style.display = 'none';
+                        }
+                    } else {
+                        // Unknown status - reset to ready
+                        console.log("⚠️ Unknown status, resetting to ready:", data.status);
+                        if (isHost) {
+                            firebase.database().ref(`hockey_games/${gameId}`).update({ status: 'ready' });
+                        }
+                    }
+                } else {
+                    // Initialize Game if not exists
+                    if (isHost) {
+                        console.log("🎮 Host initializing game...");
+                        resetGameData();
+                    } else {
+                        console.log("⏳ Guest waiting for host...");
+                        document.getElementById('loadingText').textContent = "بانتظار المضيف لإنشاء اللعبة...";
+                    }
+                }
+            }, (error) => {
+                clearTimeout(connectionTimeout);
+                console.error("🔥 Firebase error:", error);
+                document.getElementById('loadingText').textContent = "خطأ في الاتصال: " + error.message;
+                document.querySelector('.spinner').style.display = 'none';
+            });
+        }
+
+        function startGameLoop() {
+            if (gameLoop) return;
+            lastTime = performance.now();
+            gameLoop = requestAnimationFrame(loop);
+            
+            // بدء المؤقت
+            if (isHost && !timerInterval) {
+                gameStartTime = Date.now();
+                timerInterval = setInterval(updateTimer, 100);
+            }
+        }
+
+        function updateTimer() {
+            if (!gameStartTime || gameState.status !== 'playing') return;
+            
+            const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+            gameTimer = Math.max(0, GAME_TIME - elapsed);
+            
+            // تحديث العرض
+            const minutes = Math.floor(gameTimer / 60);
+            const seconds = gameTimer % 60;
+            const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            const timerEl = document.getElementById('timerDisplay');
+            if (timerEl) timerEl.textContent = display;
+            
+            // إنهاء اللعبة عند انتهاء الوقت
+            if (gameTimer <= 0 && isHost) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                endGameByTime();
+            }
+            
+            // مزامنة الوقت مع Firebase
+            if (isHost && elapsed % 2 === 0) {
+                firebase.database().ref(`hockey_games/${gameId}`).update({
+                    timeLeft: gameTimer
+                });
+            }
+        }
+
+        function endGameByTime() {
+            // تحديد الفائز حسب النتيجة
+            let winner = null;
+            if (gameState.score1 > gameState.score2) {
+                winner = isHost ? me.id : opponentId;
+            } else if (gameState.score2 > gameState.score1) {
+                winner = isHost ? opponentId : me.id;
+            }
+            // في حالة التعادل winner = null
+            
+            firebase.database().ref(`hockey_games/${gameId}`).update({
+                status: 'finished',
+                winner: winner,
+                score1: gameState.score1,
+                score2: gameState.score2,
+                endReason: 'timeout'
+            });
+        }
+
+        function loop(timestamp) {
+            if (gameState.status === 'finished') {
+                if (gameLoop) {
+                    cancelAnimationFrame(gameLoop);
+                    gameLoop = null;
+                }
+                return;
+            }
+
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            const safeDt = Math.min(deltaTime, 0.1);
+
+            // Freeze frame effect
+            if (freezeFrames > 0) {
+                freezeFrames--;
+                draw();
+                gameLoop = requestAnimationFrame(loop);
+                return;
+            }
+
+            if (isHost) {
+                updatePhysics(safeDt);
+            }
+
+            draw();
+
+            gameLoop = requestAnimationFrame(loop);
+        }
+
+        let lastSyncTime = 0;
+        const SYNC_INTERVAL = 50;
+
+        function updatePhysics(dt) {
+            const factor = dt * 60;
+
+            // Apply friction (ultra smooth ice surface - like air hockey)
+            const friction = 0.992;
+            gameState.ballVX *= friction;
+            gameState.ballVY *= friction;
+
+            // Stop if too slow
+            if (Math.abs(gameState.ballVX) < 0.03) gameState.ballVX = 0;
+            if (Math.abs(gameState.ballVY) < 0.03) gameState.ballVY = 0;
+            
+            // Calculate ball speed for effects
+            const ballSpeed = Math.sqrt(gameState.ballVX ** 2 + gameState.ballVY ** 2);
+            stats.maxSpeed = Math.max(stats.maxSpeed, ballSpeed);
+
+            gameState.ballX += gameState.ballVX * factor;
+            gameState.ballY += gameState.ballVY * factor;
+
+            // Wall collisions (bounce) - فقط الأعلى والأسفل
+            const restitution = 0.95; // Bounce coefficient
+            if (gameState.ballY <= BALL_SIZE) {
+                gameState.ballVY = Math.abs(gameState.ballVY) * restitution;
+                gameState.ballY = BALL_SIZE;
+                playSound(600, 0.1);
+                createParticles(gameState.ballX, BALL_SIZE, '#0080ff', 5);
+            }
+            if (gameState.ballY >= CANVAS_HEIGHT - BALL_SIZE) {
+                gameState.ballVY = -Math.abs(gameState.ballVY) * restitution;
+                gameState.ballY = CANVAS_HEIGHT - BALL_SIZE;
+                playSound(600, 0.1);
+                createParticles(gameState.ballX, CANVAS_HEIGHT - BALL_SIZE, '#0080ff', 5);
+            }
+            
+            // اليمين واليسار - collision فقط خارج منطقة المرمى
+            const goalWidth = 150;
+            const goalStart = (CANVAS_HEIGHT - goalWidth) / 2;
+            const goalEnd = goalStart + goalWidth;
+            
+            // Left wall collision (خارج المرمى فقط)
+            if (gameState.ballX <= BALL_SIZE) {
+                if (gameState.ballY < goalStart || gameState.ballY > goalEnd) {
+                    // خارج المرمى - ارتداد
+                    gameState.ballVX = Math.abs(gameState.ballVX) * restitution;
+                    gameState.ballX = BALL_SIZE;
+                    playSound(600, 0.1);
+                    createParticles(BALL_SIZE, gameState.ballY, '#0080ff', 5);
+                }
+            }
+            
+            // Right wall collision (خارج المرمى فقط)
+            if (gameState.ballX >= CANVAS_WIDTH - BALL_SIZE) {
+                if (gameState.ballY < goalStart || gameState.ballY > goalEnd) {
+                    // خارج المرمى - ارتداد
+                    gameState.ballVX = -Math.abs(gameState.ballVX) * restitution;
+                    gameState.ballX = CANVAS_WIDTH - BALL_SIZE;
+                    playSound(600, 0.1);
+                    createParticles(CANVAS_WIDTH - BALL_SIZE, gameState.ballY, '#ffff00', 5);
+                }
+            }
+
+            // P1 Paddle - Hit detection
+            const distP1 = Math.sqrt(
+                Math.pow(gameState.ballX - gameState.p1X, 2) + 
+                Math.pow(gameState.ballY - gameState.p1Y, 2)
+            );
+            
+            if (distP1 < PADDLE_RADIUS + BALL_SIZE) {
+                // Calculate hit direction and power based on paddle position
+                const angle = Math.atan2(gameState.ballY - gameState.p1Y, gameState.ballX - gameState.p1X);
+                
+                // Distance from center affects power (edge hits are more powerful)
+                const distFromCenter = distP1 / PADDLE_RADIUS;
+                const power = 6 + (distFromCenter * 4); // 6-10 speed range
+                
+                gameState.ballVX = Math.cos(angle) * power;
+                gameState.ballVY = Math.sin(angle) * power;
+                
+                // Push ball outside paddle
+                const pushDist = PADDLE_RADIUS + BALL_SIZE + 2;
+                gameState.ballX = gameState.p1X + Math.cos(angle) * pushDist;
+                gameState.ballY = gameState.p1Y + Math.sin(angle) * pushDist;
+                
+                // Effects and stats
+                const hitStrength = Math.min(power / 10, 1);
+                screenShake = 2 + hitStrength * 3;
+                createParticles(gameState.ballX, gameState.ballY, '#00ff00', Math.floor(8 + hitStrength * 12));
+                playSound(400 + power * 20, 0.15, 'square');
+                
+                stats.p1Hits++;
+                stats.totalHits++;
+                stats.currentRally++;
+                
+                // Combo system
+                const now = Date.now();
+                if (now - lastHitTime < 2000) {
+                    comboHits++;
+                    comboDisplay.count = comboHits;
+                    comboDisplay.alpha = 1;
+                    if (comboHits > 3) {
+                        createParticles(gameState.ballX, gameState.ballY, '#ffffff', 15);
+                        playSound(600 + comboHits * 50, 0.1, 'sine');
+                    }
+                    if (comboHits > 5) {
+                        freezeFrames = 3;
+                        createParticles(gameState.ballX, gameState.ballY, '#ffff00', 25);
+                    }
+                } else {
+                    comboHits = 1;
+                }
+                lastHitTime = now;
+            }
+
+            // P2 Paddle - Hit detection
+            const distP2 = Math.sqrt(
+                Math.pow(gameState.ballX - gameState.p2X, 2) + 
+                Math.pow(gameState.ballY - gameState.p2Y, 2)
+            );
+            
+            if (distP2 < PADDLE_RADIUS + BALL_SIZE) {
+                // Calculate hit direction and power
+                const angle = Math.atan2(gameState.ballY - gameState.p2Y, gameState.ballX - gameState.p2X);
+                
+                const distFromCenter = distP2 / PADDLE_RADIUS;
+                const power = 6 + (distFromCenter * 4);
+                
+                gameState.ballVX = Math.cos(angle) * power;
+                gameState.ballVY = Math.sin(angle) * power;
+                
+                const pushDist = PADDLE_RADIUS + BALL_SIZE + 2;
+                gameState.ballX = gameState.p2X + Math.cos(angle) * pushDist;
+                gameState.ballY = gameState.p2Y + Math.sin(angle) * pushDist;
+                
+                // Effects and stats
+                const hitStrength = Math.min(power / 10, 1);
+                screenShake = 2 + hitStrength * 3;
+                createParticles(gameState.ballX, gameState.ballY, '#ff0000', Math.floor(8 + hitStrength * 12));
+                playSound(400 + power * 20, 0.15, 'square');
+                
+                stats.p2Hits++;
+                stats.totalHits++;
+                stats.currentRally++;
+                
+                const now = Date.now();
+                if (now - lastHitTime < 2000) {
+                    comboHits++;
+                    comboDisplay.count = comboHits;
+                    comboDisplay.alpha = 1;
+                    if (comboHits > 3) {
+                        createParticles(gameState.ballX, gameState.ballY, '#ffffff', 15);
+                        playSound(600 + comboHits * 50, 0.1, 'sine');
+                    }
+                    if (comboHits > 5) {
+                        freezeFrames = 3;
+                        createParticles(gameState.ballX, gameState.ballY, '#ffff00', 25);
+                    }
+                } else {
+                    comboHits = 1;
+                }
+                lastHitTime = now;
+            }
+
+            // تحديث أثر الكرة
+            if (gameState.ballVX !== 0 || gameState.ballVY !== 0) {
+                const speed = Math.sqrt(gameState.ballVX ** 2 + gameState.ballVY ** 2);
+                speedIndicator = speed;
+                
+                // خطوط السرعة عند السرعة العالية
+                if (speed > 8) {
+                    for (let i = 0; i < 3; i++) {
+                        speedLines.push({
+                            x: gameState.ballX + (Math.random() - 0.5) * 20,
+                            y: gameState.ballY + (Math.random() - 0.5) * 20,
+                            vx: -gameState.ballVX * 0.3,
+                            vy: -gameState.ballVY * 0.3,
+                            life: 1
+                        });
+                    }
+                }
+                
+                ballTrail.push({x: gameState.ballX, y: gameState.ballY});
+                if (ballTrail.length > 15) ballTrail.shift();
+            }
+
+            // Scoring - الأهداف على اليمين واليسار
+            if (gameState.ballX < 0) {
+                // الكرة خرجت من اليسار - اللاعب 2 يسجل
+                gameState.score2++;
+                goalEffect = {color: '#ffff00', life: 1};
+                screenShake = 8;
+                createParticles(0, CANVAS_HEIGHT / 2, '#ffff00', 50);
+                playSound(300, 0.3, 'sawtooth');
+                setTimeout(() => playSound(250, 0.4, 'sawtooth'), 100);
+                resetBall();
+            } else if (gameState.ballX > CANVAS_WIDTH) {
+                // الكرة خرجت من اليمين - اللاعب 1 يسجل
+                gameState.score1++;
+                goalEffect = {color: '#0080ff', life: 1};
+                screenShake = 8;
+                createParticles(CANVAS_WIDTH, CANVAS_HEIGHT / 2, '#0080ff', 50);
+                playSound(300, 0.3, 'sawtooth');
+                setTimeout(() => playSound(250, 0.4, 'sawtooth'), 100);
+                resetBall();
+            }
+
+            // Check Win
+            if (gameState.score1 >= WIN_SCORE || gameState.score2 >= WIN_SCORE) {
+                const winner = gameState.score1 >= WIN_SCORE ? (isHost ? me.id : opponentId) : (isHost ? opponentId : me.id);
+                firebase.database().ref(`hockey_games/${gameId}`).update({
+                    status: 'finished',
+                    winner: winner,
+                    score1: gameState.score1,
+                    score2: gameState.score2
+                });
+            } else {
+                const now = performance.now();
+                if (now - lastSyncTime > SYNC_INTERVAL) {
+                    firebase.database().ref(`hockey_games/${gameId}`).update({
+                        ballX: gameState.ballX,
+                        ballY: gameState.ballY,
+                        ballVX: gameState.ballVX,
+                        ballVY: gameState.ballVY,
+                        score1: gameState.score1,
+                        score2: gameState.score2
+                    });
+                    lastSyncTime = now;
+                }
+            }
+        }
+
+        function resetBall() {
+            gameState.ballX = CANVAS_WIDTH / 2;
+            gameState.ballY = CANVAS_HEIGHT / 2;
+            gameState.ballVX = 0;
+            gameState.ballVY = 0;
+            ballTrail = [];
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count;
+                const speed = Math.random() * 8 + 3;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed + (Math.random() - 0.5) * 3,
+                    vy: Math.sin(angle) * speed + (Math.random() - 0.5) * 3,
+                    size: Math.random() * 5 + 2,
+                    color: color,
+                    life: 1,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+
+        function draw() {
+            // Screen shake effect
+            if (screenShake > 0) {
+                ctx.save();
+                ctx.translate(
+                    (Math.random() - 0.5) * screenShake,
+                    (Math.random() - 0.5) * screenShake
+                );
+                screenShake *= 0.9;
+            }
+
+            // خلفية سوداء
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            const isMobile = window.innerWidth <= 768;
+
+            // رسم الحواف الملونة - تحديد فتحات الأهداف
+            const borderGlow = isMobile ? 15 : 25;
+            const pulseEffect = Math.sin(Date.now() / 500) * 5;
+            const goalWidth = 150; // عرض فتحة الهدف
+            const goalStart = (CANVAS_HEIGHT - goalWidth) / 2;
+            const goalEnd = goalStart + goalWidth;
+            
+            ctx.shadowBlur = borderGlow + pulseEffect;
+            ctx.shadowColor = '#00ff00';
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = isMobile ? 6 : 10;
+            
+            // الحد العلوي - كامل (مغلق)
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(CANVAS_WIDTH, 0);
+            ctx.stroke();
+
+            // حافة يسار (أزرق) مع نبض وفتحة الهدف
+            ctx.shadowBlur = borderGlow + Math.sin(Date.now() / 500 + Math.PI / 2) * 5;
+            ctx.shadowColor = '#0080ff';
+            ctx.strokeStyle = '#0080ff';
+            
+            // الجزء العلوي من الحد الأيسر
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, goalStart);
+            ctx.stroke();
+            
+            // الجزء السفلي من الحد الأيسر
+            ctx.beginPath();
+            ctx.moveTo(0, goalEnd);
+            ctx.lineTo(0, CANVAS_HEIGHT);
+            ctx.stroke();
+
+            // حافة أسفل (أحمر) مع نبض - كامل (مغلق)
+            ctx.shadowBlur = borderGlow + Math.sin(Date.now() / 500 + Math.PI) * 5;
+            ctx.shadowColor = '#ff0000';
+            ctx.strokeStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.moveTo(0, CANVAS_HEIGHT);
+            ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.stroke();
+
+            // حافة يمين (أصفر) مع نبض وفتحة الهدف
+            ctx.shadowBlur = borderGlow + Math.sin(Date.now() / 500 + Math.PI * 1.5) * 5;
+            ctx.shadowColor = '#ffff00';
+            ctx.strokeStyle = '#ffff00';
+            
+            // الجزء العلوي من الحد الأيمن
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_WIDTH, 0);
+            ctx.lineTo(CANVAS_WIDTH, goalStart);
+            ctx.stroke();
+            
+            // الجزء السفلي من الحد الأيمن
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_WIDTH, goalEnd);
+            ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.stroke();
+
+            // خط المنتصف العمودي
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([15, 10]);
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_WIDTH / 2, 0);
+            ctx.lineTo(CANVAS_WIDTH / 2, CANVAS_HEIGHT);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // دائرة المنتصف
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 60, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // نصف دائرة يسار (مرمى اللاعب 1) - الهدف الأزرق
+            ctx.strokeStyle = 'rgba(0, 128, 255, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#0080ff';
+            ctx.beginPath();
+            ctx.arc(0, CANVAS_HEIGHT / 2, 80, -Math.PI / 2, Math.PI / 2, false);
+            ctx.stroke();
+            
+            // خطوط أفقية للهدف الأيسر
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, goalStart);
+            ctx.lineTo(60, goalStart);
+            ctx.moveTo(0, goalEnd);
+            ctx.lineTo(60, goalEnd);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // نصف دائرة يمين (مرمى اللاعب 2) - الهدف الأصفر
+            ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
+            ctx.shadowColor = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(CANVAS_WIDTH, CANVAS_HEIGHT / 2, 80, Math.PI / 2, -Math.PI / 2, false);
+            ctx.stroke();
+            
+            // خطوط أفقية للهدف الأيمن
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_WIDTH, goalStart);
+            ctx.lineTo(CANVAS_WIDTH - 60, goalStart);
+            ctx.moveTo(CANVAS_WIDTH, goalEnd);
+            ctx.lineTo(CANVAS_WIDTH - 60, goalEnd);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // رسم أثر الكرة (Ball Trail)
+            ballTrail.forEach((trail, index) => {
+                const alpha = (index / ballTrail.length) * 0.5;
+                ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(trail.x, trail.y, BALL_SIZE * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Paddle 1 (أخضر نيون)
+            const paddleGlow = isMobile ? 25 : 35;
+            const pulsePaddle = Math.sin(Date.now() / 200) * 5 + paddleGlow;
+            ctx.shadowBlur = pulsePaddle;
+            ctx.shadowColor = '#00ff00';
+            
+            // حلقة خارجية متحركة
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(gameState.p1X, gameState.p1Y, PADDLE_RADIUS + 3 + Math.sin(Date.now() / 300), 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // دائرة داخلية بيضاء
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#00ff00';
+            ctx.beginPath();
+            ctx.arc(gameState.p1X, gameState.p1Y, PADDLE_RADIUS - 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // نقطة مركزية خضراء مع تدرج
+            const gradientP1 = ctx.createRadialGradient(gameState.p1X, gameState.p1Y, 0, gameState.p1X, gameState.p1Y, PADDLE_RADIUS - 15);
+            gradientP1.addColorStop(0, '#ffffff');
+            gradientP1.addColorStop(0.5, '#00ff00');
+            gradientP1.addColorStop(1, '#00aa00');
+            ctx.fillStyle = gradientP1;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(gameState.p1X, gameState.p1Y, PADDLE_RADIUS - 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Paddle 2 (أحمر نيون)
+            ctx.shadowBlur = pulsePaddle;
+            ctx.shadowColor = '#ff0000';
+            
+            // حلقة خارجية متحركة
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(gameState.p2X, gameState.p2Y, PADDLE_RADIUS + 3 + Math.sin(Date.now() / 300 + Math.PI), 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // دائرة داخلية بيضاء
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(gameState.p2X, gameState.p2Y, PADDLE_RADIUS - 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // نقطة مركزية حمراء مع تدرج
+            const gradientP2 = ctx.createRadialGradient(gameState.p2X, gameState.p2Y, 0, gameState.p2X, gameState.p2Y, PADDLE_RADIUS - 15);
+            gradientP2.addColorStop(0, '#ffffff');
+            gradientP2.addColorStop(0.5, '#ff0000');
+            gradientP2.addColorStop(1, '#aa0000');
+            ctx.fillStyle = gradientP2;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(gameState.p2X, gameState.p2Y, PADDLE_RADIUS - 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // الكرة (ذهبي نيون)
+            const ballSpeed = Math.sqrt(gameState.ballVX ** 2 + gameState.ballVY ** 2);
+            const ballGlow = isMobile ? 25 : 35;
+            const dynamicGlow = ballGlow + (ballSpeed * 2);
+            ctx.shadowBlur = dynamicGlow;
+            ctx.shadowColor = '#ffff00';
+            
+            // حلقة خارجية نابضة
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3 + Math.sin(Date.now() / 100) * 1;
+            ctx.beginPath();
+            ctx.arc(gameState.ballX, gameState.ballY, BALL_SIZE + 2 + Math.sin(Date.now() / 150), 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // دائرة بيضاء مع تدرج
+            const gradientBall = ctx.createRadialGradient(gameState.ballX, gameState.ballY, 0, gameState.ballX, gameState.ballY, BALL_SIZE);
+            gradientBall.addColorStop(0, '#ffffff');
+            gradientBall.addColorStop(0.7, '#ffff00');
+            gradientBall.addColorStop(1, '#ffaa00');
+            ctx.fillStyle = gradientBall;
+            ctx.shadowBlur = 20 + ballSpeed;
+            ctx.shadowColor = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(gameState.ballX, gameState.ballY, BALL_SIZE, 0, Math.PI * 2);
+            ctx.fill();
+
+            // رسم الجزيئات
+            particles.forEach((p, index) => {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+                
+                // توهج الجزيئة
+                ctx.shadowBlur = 15 * p.life;
+                ctx.shadowColor = p.color;
+                
+                // رسم مربع دوار بدل دائرة لبعض الجزيئات
+                if (index % 3 === 0) {
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                } else {
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+                
+                // تحديث الجزيئات
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vx *= 0.98; // مقاومة الهواء
+                p.vy *= 0.98;
+                p.life -= 0.02;
+                p.size *= 0.96;
+                p.rotation += p.rotationSpeed;
+                
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+
+            // رسم خطوط السرعة
+            speedLines.forEach((line, index) => {
+                ctx.strokeStyle = `rgba(255, 255, 0, ${line.life * 0.5})`;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#ffff00';
+                ctx.beginPath();
+                ctx.moveTo(line.x, line.y);
+                ctx.lineTo(line.x - line.vx * 5, line.y - line.vy * 5);
+                ctx.stroke();
+                
+                line.x += line.vx;
+                line.y += line.vy;
+                line.life -= 0.05;
+                
+                if (line.life <= 0) speedLines.splice(index, 1);
+            });
+
+            // مؤشر السرعة (شريط جانبي)
+            if (speedIndicator > 0) {
+                const maxSpeed = 15;
+                const speedPercent = Math.min(speedIndicator / maxSpeed, 1);
+                const barHeight = CANVAS_HEIGHT * 0.4;
+                const barY = CANVAS_HEIGHT / 2 - barHeight / 2;
+                
+                // خلفية الشريط
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(10, barY, 8, barHeight);
+                
+                // الشريط الملون
+                const gradient = ctx.createLinearGradient(10, barY + barHeight, 10, barY);
+                gradient.addColorStop(0, '#00ff00');
+                gradient.addColorStop(0.5, '#ffff00');
+                gradient.addColorStop(1, '#ff0000');
+                
+                ctx.fillStyle = gradient;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = speedPercent > 0.7 ? '#ff0000' : speedPercent > 0.4 ? '#ffff00' : '#00ff00';
+                ctx.fillRect(10, barY + barHeight * (1 - speedPercent), 8, barHeight * speedPercent);
+                
+                // نص السرعة
+                ctx.shadowBlur = 5;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('SPEED', 14, barY - 5);
+                
+                speedIndicator *= 0.95;
+            }
+
+            // عرض الكومبو
+            if (comboDisplay.alpha > 0) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ffff00';
+                ctx.fillStyle = `rgba(255, 255, 0, ${comboDisplay.alpha})`;
+                ctx.font = 'bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`COMBO x${comboDisplay.count}`, CANVAS_WIDTH / 2, 60);
+                
+                // نجوم حول النص
+                for (let i = 0; i < comboDisplay.count && i < 10; i++) {
+                    const angle = (i / comboDisplay.count) * Math.PI * 2 + Date.now() / 500;
+                    const x = CANVAS_WIDTH / 2 + Math.cos(angle) * 80;
+                    const y = 60 + Math.sin(angle) * 30;
+                    ctx.fillText('★', x, y);
+                }
+                
+                comboDisplay.alpha -= 0.02;
+            }
+
+            // تأثير الهدف
+            if (goalEffect) {
+                ctx.shadowBlur = 50;
+                ctx.shadowColor = goalEffect.color;
+                ctx.fillStyle = goalEffect.color;
+                ctx.font = 'bold 60px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GOAL!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+                
+                // دوائر متوسعة
+                for (let i = 0; i < 3; i++) {
+                    ctx.strokeStyle = `${goalEffect.color}${Math.floor((1 - goalEffect.life) * 100).toString(16).padStart(2, '0')}`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 100 + i * 50 + goalEffect.life * 100, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                goalEffect.life -= 0.05;
+                if (goalEffect.life <= 0) goalEffect = null;
+            }
+
+            ctx.shadowBlur = 0;
+            if (screenShake > 0) ctx.restore();
+
+            // Update stats display
+            const totalHitsEl = document.getElementById('totalHitsSpan');
+            const longestRallyEl = document.getElementById('longestRallySpan');
+            if (totalHitsEl) totalHitsEl.textContent = stats.totalHits;
+            if (longestRallyEl) longestRallyEl.textContent = stats.longestRally;
+
+            document.getElementById('score1').textContent = gameState.score1;
+            document.getElementById('score2').textContent = gameState.score2;
+        }
+
+        function endGame(winnerId) {
+            gameState.status = 'finished';
+            
+            // إيقاف المؤقت
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            document.getElementById('loadingScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            
+            let text, color;
+            if (winnerId === null || winnerId === undefined) {
+                // تعادل
+                text = "⚖️ تعادل! مباراة متكافئة";
+                color = '#ffa500';
+            } else {
+                const isWinner = String(winnerId) === String(me.id);
+                text = isWinner ? "🏆 مبروك! لقد فزت!" : "❌ حظ أوفر! لقد خسرت";
+                color = isWinner ? '#4cc9f0' : '#e94560';
+            }
+            
+            const winnerTextEl = document.getElementById('winnerText');
+            winnerTextEl.textContent = text;
+            winnerTextEl.style.color = color;
+
+            updateUserGameStatus(me.id, gameId, 'finished');
+
+            if (isHost && opponentId) {
+                updateUserGameStatus(opponentId, gameId, 'finished');
+            }
+        }
+
+        function updateUserGameStatus(userId, gameId, status) {
+            if (!userId) return;
+            
+            getUser(userId).then(user => {
+                if (!user || !user.hockeyGames) return;
+                
+                const games = user.hockeyGames;
+                const gameIndex = games.findIndex(g => g.id === gameId);
+                
+                if (gameIndex !== -1) {
+                    games[gameIndex].status = status;
+                    updateUser(userId, { hockeyGames: games });
+                }
+            });
+        }
+
+        function resetGameData() {
+            console.log("🔄 Resetting game data...");
+            firebase.database().ref(`hockey_games/${gameId}`).set({
+                p1X: CANVAS_WIDTH / 4,
+                p1Y: CANVAS_HEIGHT / 2,
+                p2X: CANVAS_WIDTH * 3 / 4,
+                p2Y: CANVAS_HEIGHT / 2,
+                ballX: CANVAS_WIDTH / 2,
+                ballY: CANVAS_HEIGHT / 2,
+                ballVX: 0,
+                ballVY: 0,
+                score1: 0,
+                score2: 0,
+                timeLeft: GAME_TIME,
+                status: 'ready',
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                console.log("✅ Game initialized successfully");
+            }).catch((error) => {
+                console.error("❌ Error initializing game:", error);
+                document.getElementById('loadingText').textContent = "خطأ في إنشاء اللعبة: " + error.message;
+                document.querySelector('.spinner').style.display = 'none';
+            });
+        }
+
+        function hostStartGame() {
+            if (!isHost) return;
+            
+            // إعادة تعيين المؤقت
+            gameStartTime = null;
+            gameTimer = GAME_TIME;
+            
+            firebase.database().ref(`hockey_games/${gameId}`).update({
+                status: 'playing',
+                timeLeft: GAME_TIME
+            });
+        }
+
+        function restartGame() {
+            if (isHost) {
+                document.getElementById('gameOverScreen').style.display = 'none';
+                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('loadingText').textContent = "جاري إعادة تشغيل اللعبة...";
+                
+                resetGameData();
+                updateUserGameStatus(me.id, gameId, 'playing');
+                if (opponentId) {
+                    updateUserGameStatus(opponentId, gameId, 'playing');
+                }
+            } else {
+                alert("فقط المضيف يمكنه إعادة التشغيل.");
+            }
+        }
+
+        function quitGame() {
+            if (confirm("هل تريد إنهاء اللعبة والعودة للصفحة الرئيسية؟")) {
+                // Mark game as finished for both players
+                updateUserGameStatus(me.id, gameId, 'finished');
+                if (isHost && opponentId) {
+                    updateUserGameStatus(opponentId, gameId, 'finished');
+                }
+                
+                // Update game status in Firebase
+                firebase.database().ref(`hockey_games/${gameId}`).update({
+                    status: 'finished',
+                    winner: 'quit',
+                    quit: true
+                }).then(() => {
+                    location.href = 'index.html';
+                });
+            }
+        }
+
+        function surrenderGame() {
+            if (!confirm('هل أنت متأكد من الاستسلام؟ سيتم احتساب خسارة لك حتى لو نتيجتك أعلى!')) {
+                return;
+            }
+
+            // إيقاف المؤقت
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            // من يستسلم يخسر - الخصم يفوز حتى لو النتيجة أقل
+            const winner = isHost ? opponentId : me.id;
+            
+            firebase.database().ref(`hockey_games/${gameId}`).update({
+                status: 'finished',
+                winner: winner,
+                score1: gameState.score1,
+                score2: gameState.score2,
+                endReason: 'surrender',
+                surrenderedBy: me.id
+            }).then(() => {
+                console.log('✅ تم الاستسلام - الخصم فاز');
+            });
+        }
+
+        function forceQuit() {
+            // Force quit without confirmation - for stuck states
+            updateUserGameStatus(me.id, gameId, 'finished');
+            setTimeout(() => {
+                location.href = 'index.html';
+            }, 500);
+        }
+
+        function deleteAndRestart() {
+            if (confirm("هل تريد حذف اللعبة الحالية وإعادة البدء؟")) {
+                // Delete the game from Firebase
+                firebase.database().ref(`hockey_games/${gameId}`).remove()
+                    .then(() => {
+                        console.log("🗑️ Game deleted, reinitializing...");
+                        // Reinitialize
+                        if (isHost) {
+                            resetGameData();
+                        }
+                        // Reload the page
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    })
+                    .catch(err => {
+                        console.error("❌ Error deleting game:", err);
+                        alert("فشل حذف اللعبة: " + err.message);
+                    });
+            }
+        }
+    </script>
+</body>
+</html>

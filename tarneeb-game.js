@@ -256,9 +256,11 @@ function showBidModal() {
         
         const minBid = gameState.bid.amount + 1;
         for (let i = Math.max(7, minBid); i <= 13; i++) {
-            container.append(`
-                <div class="bid-btn" onclick="makeBid(${i})">${i}</div>
-            `);
+            const btn = $(`<div class="bid-btn">${i}</div>`);
+            btn.on('click', function() {
+                makeBid(i);
+            });
+            container.append(btn);
         }
         
         $('#bidModal').addClass('active');

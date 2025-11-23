@@ -140,6 +140,12 @@
             border-top: 5px solid #f5576c;
         }
 
+        .room-card.hockey {
+            border-top: 5px solid #e94560;
+        }
+
+        
+
         .room-header {
             display: flex;
             justify-content: space-between;
@@ -168,6 +174,11 @@
         .room-type.words {
             background: #ffebee;
             color: #f5576c;
+        }
+
+        .room-type.hockey {
+            background: #1a1a2e;
+            color: #e94560;
         }
 
         .room-info {
@@ -473,6 +484,10 @@
         <button class="tab-btn" onclick="switchTab('egg-wars')">
             🥚 حرب البيض
         </button>
+        <button class="tab-btn" onclick="switchTab('hockey')">
+            🏒 هوكي
+        </button>
+        
         <button class="tab-btn" onclick="switchTab('my')">
             <i class="fas fa-user"></i> غرفي
         </button>
@@ -520,6 +535,8 @@
                 <option value="math">🎮 لعبة الحساب</option>
                 <option value="words">🎯 لعبة الكلمات</option>
                 <option value="egg-wars">🥚 حرب البيض</option>
+                <option value="hockey">🏒 هوكي</option>
+                
             </select>
         </div>
 
@@ -608,8 +625,10 @@ function displayRooms() {
         if (currentTab === 'math') return room.gameType === 'math';
         if (currentTab === 'words') return room.gameType === 'words';
         if (currentTab === 'egg-wars') return room.gameType === 'egg-wars';
+        if (currentTab === 'hockey') return room.gameType === 'hockey';
+        
         if (currentTab === 'my') return isPlayer || isCreator;
-        return true;
+        
     });
 
     if (filtered.length === 0) {
@@ -641,7 +660,9 @@ function displayRooms() {
         let typeText = {
             'math': '🎮 حساب',
             'words': '🎯 كلمات',
-            'egg-wars': '🥚 حرب البيض'
+            'egg-wars': '🥚 حرب البيض',
+            'hockey': '🏒 هوكي'
+            
         }[room.gameType] || room.gameType;
 
         let playersHTML = room.players.map(p => {
@@ -838,6 +859,8 @@ function joinRoom(roomId) {
             if (room.gameType === 'math') location.href = "room-math.html?room=" + roomId;
             else if (room.gameType === 'words') location.href = "room-words.html?room=" + roomId;
             else if (room.gameType === 'egg-wars') location.href = "egg-wars.html?game=" + roomId;
+            else if (room.gameType === 'hockey') location.href = "game-hockey.html?game=" + roomId + "&op=" + (room.creatorId === String(me.id) ? room.players.find(p => p.id !== String(me.id))?.id : room.creatorId);
+            
         }, 1000);
     }).catch(err => {
         console.error("خطأ في الانضمام:", err);
@@ -856,7 +879,9 @@ function enterRoom(roomId) {
             location.href = "room-words.html?room=" + roomId;
         } else if (room.gameType === 'egg-wars') {
             location.href = "egg-wars.html?game=" + roomId;
-        }
+        } else if (room.gameType === 'hockey') {
+            location.href = "game-hockey.html?room=" + roomId;
+        } 
     }).catch(err => {
         console.error("خطأ:", err);
         alert("حدث خطأ في دخول الغرفة!");

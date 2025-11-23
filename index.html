@@ -813,8 +813,14 @@
                 <div id="eggWarsChallengesList"></div>
             </div>
 
-
-
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        🏒 تحديات الهوكي
+                    </h2>
+                </div>
+                <div id="hockeyChallengesList"></div>
+            </div>
 
         </div>
     </div>
@@ -881,6 +887,10 @@
                 });
         }
 
+        // دالة جلب دعوات الطرنيب - تم الحذف
+        // قبول دعوة الطرنيب - تم الحذف
+        // رفض دعوة الطرنيب - تم الحذف
+
         // ✅ فتح مركز الإشعارات
         function openNotificationsCenter() {
             getUser(me.id).then(user => {
@@ -938,6 +948,8 @@
                     });
                     notificationsHTML += `</div>`;
                 }
+
+                // إشعارات دعوات الطرنيب - تم الحذف
 
                 // إشعارات الأدمن
                 if (adminNotifications.length > 0) {
@@ -1055,8 +1067,8 @@
                     const total = pending + (adminNotifs ? adminNotifs.length : 0);
                     
                     const badge = document.getElementById('notificationBadge');
-                    if (badge) {
-                        if (total > 0) {
+                        if (badge) {
+                            if (total > 0) {
                             badge.textContent = total;
                             badge.style.display = 'flex';
                         } else {
@@ -1573,6 +1585,169 @@
             });
         }
 
+        function loadHockeyChallenges(users) {
+            let container = $("#hockeyChallengesList").html("");
+            let friends = (me.friends || []).map(String);
+
+            if (friends.length === 0) {
+                container.html(`
+                    <div class="empty-state">
+                        <i class="fas fa-gamepad"></i>
+                        <p>لا يوجد أصدقاء لبدء التحديات</p>
+                    </div>
+                `);
+                return;
+            }
+
+            friends.forEach(fid => {
+                let friend = users.find(u => String(u.id) === fid);
+                if (!friend) return;
+
+                let myGame = (me.hockeyGames || []).find(g => String(g.opponentId) === String(fid));
+
+                let button = "";
+
+                if (!myGame || myGame.status === "finished") {
+                    button = `
+                        <button class="action-btn send" onclick="sendHockeyGame('${fid}')">
+                            🏒 تحدي هوكي
+                        </button>
+                    `;
+                }
+                else if (myGame && myGame.status === "pending") {
+                    button = `
+                        <button class="action-btn view" disabled style="opacity:0.7;">
+                            ⏳ انتظار الموافقة
+                        </button>
+                        <button class="action-btn reject" onclick="cancelHockeyGame('${myGame.id}', '${fid}')">
+                            <i class="fas fa-times"></i>
+                            إلغاء
+                        </button>
+                    `;
+                }
+                else if (myGame && myGame.status === "invited") {
+                    button = `
+                        <button class="action-btn accept" onclick="acceptHockeyGame('${myGame.id}', '${fid}')">
+                            ✅ قبول
+                        </button>
+                        <button class="action-btn reject" onclick="rejectHockeyGame('${myGame.id}', '${fid}')">
+                            ❌ رفض
+                        </button>
+                    `;
+                }
+                else if (myGame && myGame.status === "playing") {
+                    button = `
+                        <button class="action-btn view" onclick="window.location.href='game-hockey.html?game=${myGame.id}&op=${fid}'">
+                            ▶️ متابعة اللعبة
+                        </button>
+                    `;
+                }
+
+                container.append(`
+                    <div class="user-card">
+                        <div class="user-info">
+                            <img class="avatar" src="${friend.avatar || 'https://via.placeholder.com/50'}">
+                            <div class="user-details">
+                                <h3>${friend.username}</h3>
+                                <p>${friend.email}</p>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            ${button}
+                        </div>
+                    </div>
+                `);
+            });
+
+            if (container.children().length === 0) {
+                container.html(`
+                    <div class="empty-state">
+                        <i class="fas fa-gamepad"></i>
+                        <p>لا توجد تحديات</p>
+                    </div>
+                `);
+            }
+        }
+
+        function sendHockeyGame(friendId) {
+            let gameId = "h" + Date.now();
+
+            me.hockeyGames = (me.hockeyGames || []).filter(g => 
+                !(String(g.opponentId) === String(friendId) && g.status === "finished")
+            );
+
+            let myGame = {
+                id: gameId,
+                opponentId: String(friendId),
+                status: "pending",
+                time: Date.now()
+            };
+
+            let hisGame = {
+                id: gameId,
+                opponentId: String(me.id),
+                status: "invited",
+                time: Date.now()
+            };
+
+            me.hockeyGames.push(myGame);
+
+            updateUser(me.id, { hockeyGames: me.hockeyGames }).then(() => {
+                getUser(friendId).then(fr => {
+                    fr.hockeyGames = (fr.hockeyGames || []).filter(g => 
+                        !(String(g.opponentId) === String(me.id) && g.status === "finished")
+                    );
+                    
+                    fr.hockeyGames.push(hisGame);
+
+                    updateUser(friendId, { hockeyGames: fr.hockeyGames }).then(() => {
+                        alert("تم إرسال تحدي الهوكي!");
+                        loadData();
+                    });
+                });
+            });
+        }
+
+        function acceptHockeyGame(gameId, opponentId) {
+            let myGame = me.hockeyGames.find(g => g.id === gameId);
+            if (!myGame) return;
+
+            myGame.status = "playing";
+
+            updateUser(me.id, { hockeyGames: me.hockeyGames }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    let hisGame = (opponent.hockeyGames || []).find(g => g.id === gameId);
+                    if (hisGame) {
+                        hisGame.status = "playing";
+                    }
+
+                    updateUser(opponentId, { hockeyGames: opponent.hockeyGames }).then(() => {
+                        window.location.href = `game-hockey.html?game=${gameId}&op=${opponentId}`;
+                    });
+                });
+            });
+        }
+
+        function rejectHockeyGame(gameId, opponentId) {
+            me.hockeyGames = me.hockeyGames.filter(g => g.id !== gameId);
+
+            updateUser(me.id, { hockeyGames: me.hockeyGames }).then(() => {
+                getUser(opponentId).then(opponent => {
+                    opponent.hockeyGames = (opponent.hockeyGames || []).filter(g => g.id !== gameId);
+                    updateUser(opponentId, { hockeyGames: opponent.hockeyGames }).then(() => {
+                        alert("تم رفض التحدي");
+                        loadData();
+                    });
+                });
+            });
+        }
+
+        function cancelHockeyGame(gameId, opponentId) {
+            showConfirm('هل أنت متأكد من إلغاء التحدي؟', () => {
+                rejectHockeyGame(gameId, opponentId);
+            });
+        }
+
         // =========================================
         // 🔥 نظام التحديث اللحظي (Real-time)
         // =========================================
@@ -1595,6 +1770,7 @@
             loadMathChallenges(users);
             loadEggWarsChallenges(users);
             loadWordChallenges(users);
+            loadHockeyChallenges(users);
             loadAdminMessages(users);
 
             $("#pendingCount").text(me.pending?.length || 0);
