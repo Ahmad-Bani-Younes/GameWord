@@ -105,6 +105,16 @@ function initGame(opponentId) {
     canvas = document.getElementById('game-canvas');
     ctx = canvas.getContext('2d');
     
+    // Optimize canvas for mobile
+    if (isMobileDevice) {
+        // Use lower resolution for better performance
+        canvas.width = 600;  // Instead of 800
+        canvas.height = 450; // Instead of 600
+        // Adjust constants
+        CANVAS_WIDTH = 600;
+        CANVAS_HEIGHT = 450;
+    }
+    
     // Show mobile mode indicator
     if (isMobileDevice) {
         const mobileIndicator = document.getElementById('mobile-mode-indicator');
@@ -118,6 +128,7 @@ function initGame(opponentId) {
         if (resourceBar) resourceBar.classList.add('minimized');
         
         console.log('📱 Mobile Optimization: ON');
+        console.log('⚡ Canvas: 600x450 (reduced from 800x600)');
         console.log('⚡ Reduced Effects: Shadows, Glow, Weather, Sounds');
     }
 
@@ -297,8 +308,12 @@ function initGame(opponentId) {
         });
 
         requestAnimationFrame(gameLoop);
-        setInterval(sendUpdate, 100);
-        setInterval(generateResources, 1000);
+        // Reduce update frequency on mobile
+        const updateInterval = isMobileDevice ? 150 : 100;
+        setInterval(sendUpdate, updateInterval);
+        // Resource generation (optimized interval)
+    const resourceInterval = isMobileDevice ? 1500 : 1000;
+    setInterval(generateResources, resourceInterval);
         
         startEventListeners();
         setupMobileControls();
@@ -406,62 +421,86 @@ function update() {
 }
 
 function draw() {
-    // Apply screen shake
-    ctx.save();
-    ctx.translate(screenShakeOffset.x, screenShakeOffset.y);
+    // Apply screen shake (disabled on mobile)
+    if (!isMobileDevice) {
+        ctx.save();
+        ctx.translate(screenShakeOffset.x, screenShakeOffset.y);
+    }
     
-    // Gradient background
-    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    gradient.addColorStop(0, '#1e3c72');
-    gradient.addColorStop(0.5, '#2a5298');
-    gradient.addColorStop(1, '#27ae60');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Simplified background for mobile
+    if (isMobileDevice) {
+        // Solid gradient - much faster
+        const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+        gradient.addColorStop(0, '#2c5f8d');
+        gradient.addColorStop(1, '#2eaa60');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    } else {
+        // Full gradient for desktop
+        const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+        gradient.addColorStop(0, '#1e3c72');
+        gradient.addColorStop(0.5, '#2a5298');
+        gradient.addColorStop(1, '#27ae60');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        
+        // Grid pattern (desktop only)
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < CANVAS_WIDTH; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, CANVAS_HEIGHT);
+            ctx.stroke();
+        }
+        for (let i = 0; i < CANVAS_HEIGHT; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(CANVAS_WIDTH, i);
+            ctx.stroke();
+        }
+    }
     
     // Draw weather effects
     drawWeather();
-    
-    // Grid pattern
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < CANVAS_WIDTH; i += 40) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, CANVAS_HEIGHT);
-        ctx.stroke();
-    }
-    for (let i = 0; i < CANVAS_HEIGHT; i += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(CANVAS_WIDTH, i);
-        ctx.stroke();
-    }
 
-    // Generators with glow
+    // Generators (simplified on mobile)
     generators.forEach(gen => {
-        // Shadow/glow
         ctx.save();
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = gen.color;
         
-        ctx.beginPath();
-        ctx.arc(gen.x, gen.y, GENERATOR_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fill();
-        
-        // Pulsing effect
-        const pulse = Math.sin(Date.now() / 500) * 3;
-        ctx.beginPath();
-        ctx.arc(gen.x, gen.y, 15 + pulse, 0, Math.PI * 2);
-        ctx.fillStyle = gen.color;
-        ctx.fill();
-        
-        // Outer ring
-        ctx.strokeStyle = gen.color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(gen.x, gen.y, 20 + pulse, 0, Math.PI * 2);
-        ctx.stroke();
+        if (isMobileDevice) {
+            // Simple version for mobile - no shadows, no pulse
+            ctx.beginPath();
+            ctx.arc(gen.x, gen.y, 15, 0, Math.PI * 2);
+            ctx.fillStyle = gen.color;
+            ctx.fill();
+            
+            // Simple border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        } else {
+            // Full effects for desktop
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = gen.color;
+            
+            ctx.beginPath();
+            ctx.arc(gen.x, gen.y, GENERATOR_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fill();
+            
+            const pulse = Math.sin(Date.now() / 500) * 3;
+            ctx.beginPath();
+            ctx.arc(gen.x, gen.y, 15 + pulse, 0, Math.PI * 2);
+            ctx.fillStyle = gen.color;
+            ctx.fill();
+            
+            ctx.strokeStyle = gen.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(gen.x, gen.y, 20 + pulse, 0, Math.PI * 2);
+            ctx.stroke();
+        }
         
         ctx.restore();
         
@@ -483,8 +522,10 @@ function draw() {
     drawPlayer(me);
     Object.values(opponents).forEach(op => drawPlayer(op));
     
-    // Restore screen shake
-    ctx.restore();
+    // Restore screen shake (only if applied)
+    if (!isMobileDevice) {
+        ctx.restore();
+    }
 }
 
 function drawEgg(egg) {
@@ -530,16 +571,22 @@ function drawEgg(egg) {
         ctx.restore();
     }
     
-    // Health bar
+    // Health bar (simplified on mobile)
     if (egg.health) {
         const healthPercent = egg.health / 100;
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(egg.x - 25, egg.y - 40, 50, 6);
         
-        const healthGradient = ctx.createLinearGradient(egg.x - 25, 0, egg.x + 25, 0);
-        healthGradient.addColorStop(0, '#e74c3c');
-        healthGradient.addColorStop(1, '#c0392b');
-        ctx.fillStyle = healthGradient;
+        if (isMobileDevice) {
+            // Solid color - faster
+            ctx.fillStyle = '#e74c3c';
+        } else {
+            // Gradient for desktop
+            const healthGradient = ctx.createLinearGradient(egg.x - 25, 0, egg.x + 25, 0);
+            healthGradient.addColorStop(0, '#e74c3c');
+            healthGradient.addColorStop(1, '#c0392b');
+            ctx.fillStyle = healthGradient;
+        }
         ctx.fillRect(egg.x - 25, egg.y - 40, 50 * healthPercent, 6);
     }
 }
@@ -547,8 +594,8 @@ function drawEgg(egg) {
 function drawPlayer(p) {
     if (p.health <= 0) return;
 
-    // Draw footsteps if player is me
-    if (p === me && p.footsteps) {
+    // Draw footsteps if player is me (skip on mobile for performance)
+    if (!isMobileDevice && p === me && p.footsteps) {
         p.footsteps.forEach(f => {
             ctx.save();
             ctx.globalAlpha = f.alpha * 0.3;
@@ -648,14 +695,20 @@ function sendUpdate() {
 function generateResources() {
     if (!gameActive || me.health <= 0) return;
 
+    let resourceChanged = false;
     generators.forEach(gen => {
         const dist = Math.hypot(me.x - gen.x, me.y - gen.y);
         if (dist < GENERATOR_RADIUS) {
             resources[gen.type]++;
-            updateUI();
-            playSound('collect');
+            resourceChanged = true;
+            if (!isMobileDevice) playSound('collect'); // Sound only on desktop
         }
     });
+    
+    // Update UI only if resources changed
+    if (resourceChanged) {
+        updateUI();
+    }
 }
 
 function updateUI() {
@@ -1150,8 +1203,8 @@ draw = function() {
 function updateWeather() {
     if (!weatherEnabled) return;
     
-    // Spawn rain drops (reduced rate on mobile)
-    const rainSpawnRate = isMobileDevice ? 0.1 : 0.3;
+    // Spawn rain drops (minimal on mobile)
+    const rainSpawnRate = isMobileDevice ? 0.02 : 0.3;
     if (Math.random() < rainSpawnRate) {
         rainDrops.push({
             x: Math.random() * CANVAS_WIDTH,
@@ -1167,13 +1220,13 @@ function updateWeather() {
         return drop.y < CANVAS_HEIGHT + 20;
     });
     
-    // Limit rain particles on mobile
-    if (isMobileDevice && rainDrops.length > 20) {
-        rainDrops = rainDrops.slice(-20);
+    // Limit rain particles on mobile (very strict)
+    if (isMobileDevice && rainDrops.length > 10) {
+        rainDrops = rainDrops.slice(-10);
     }
     
-    // Spawn dust near movement (reduced on mobile)
-    const dustSpawnRate = isMobileDevice ? 0.05 : 0.2;
+    // Spawn dust near movement (minimal on mobile)
+    const dustSpawnRate = isMobileDevice ? 0.01 : 0.2;
     if (Math.abs(me.vx) > 0.5 || Math.abs(me.vy) > 0.5) {
         if (Math.random() < dustSpawnRate) {
             dustParticles.push({
@@ -1195,9 +1248,9 @@ function updateWeather() {
         return dust.alpha > 0;
     });
     
-    // Limit dust particles on mobile
-    if (isMobileDevice && dustParticles.length > 15) {
-        dustParticles = dustParticles.slice(-15);
+    // Limit dust particles on mobile (very strict)
+    if (isMobileDevice && dustParticles.length > 8) {
+        dustParticles = dustParticles.slice(-8);
     }
 }
 
@@ -1275,4 +1328,13 @@ function shakeScreen() {
 }
 
 console.log('🎮 Professional features loaded: Particles, Combos, PowerUps, Realistic Physics!');
+console.log('📱 Mobile Optimizations:');
+console.log('  - Reduced canvas resolution on mobile (600x450)');
+console.log('  - Disabled heavy effects (shadows, glow, grid)');
+console.log('  - Minimal weather particles');
+console.log('  - No footstep trails on mobile');
+console.log('  - Simplified graphics & animations');
+console.log('  - Reduced network updates (150ms vs 100ms)');
+console.log('  - Resource generation every 1.5s on mobile');
+console.log('⚡ Performance: OPTIMIZED for smooth mobile gameplay!');
 
