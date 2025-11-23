@@ -432,6 +432,16 @@
                 return;
             }
 
+            // تحديد المضيف: اللي عمل الدعوة هو اللي gameId يبدأ بـ ID تبعه
+            // gameId format: h + userId1 + userId2 + timestamp
+            // اللي ID أول في gameId هو المضيف
+            const creatorFromGameId = gameId.substring(1).split(/[0-9]{13}/)[0]; // استخرج أول ID
+            isHost = gameId.includes('h' + me.id);
+            
+            console.log("🎮 تحديد المضيف من gameId:", gameId);
+            console.log("👤 me.id:", me.id, "opponentId:", opponentId);
+            console.log("✅ أنت:", isHost ? "المضيف (عملت الدعوة)" : "الضيف (مدعو)");
+
             // Setup Controls
             setupControls();
             
@@ -568,16 +578,44 @@
         }
 
         function initFirebase() {
-            isHost = String(me.id) < String(opponentId);
-            console.log("✅ اللعبة جاهزة - أنت:", isHost ? "المضيف" : "الضيف");
-
-            startGameSession();
-
-            getUser(opponentId).then(user => {
-                if (user) {
-                    opponent = user;
-                    updatePlayerNames();
+            // تحديد المضيف أولاً قبل بدء الجلسة
+            firebase.database().ref(`hockey_games/${gameId}`).once('value').then(snapshot => {
+                const gameData = snapshot.val();
+                
+                if (gameData && gameData.creator) {
+                    // استخدام creator من Firebase
+                    isHost = String(gameData.creator) === String(me.id);
+                } else {
+                    // إذا اللعبة جديدة أو قديمة بدون creator، اللي ID أصغر هو المضيف
+                    isHost = String(me.id) < String(opponentId);
                 }
+                
+                console.log("✅ اللعبة جاهزة - أنت:", isHost ? "المضيف" : "الضيف");
+                console.log("🔍 me.id:", me.id, "opponentId:", opponentId);
+                console.log("🔍 creator:", gameData?.creator);
+                
+                startGameSession();
+
+                getUser(opponentId).then(user => {
+                    if (user) {
+                        opponent = user;
+                        updatePlayerNames();
+                    }
+                });
+            }).catch(error => {
+                console.error("❌ خطأ في تحديد المضيف:", error);
+                // fallback
+                isHost = String(me.id) < String(opponentId);
+                console.log("✅ Fallback - أنت:", isHost ? "المضيف" : "الضيف");
+                
+                startGameSession();
+                
+                getUser(opponentId).then(user => {
+                    if (user) {
+                        opponent = user;
+                        updatePlayerNames();
+                    }
+                });
             });
         }
 
@@ -777,6 +815,7 @@
 
         function updatePhysics(dt) {
             const factor = dt * 60;
+            const isMobile = window.innerWidth <= 768;
 
             // Apply friction (ultra smooth ice surface - like air hockey)
             const friction = 0.992;
@@ -942,21 +981,26 @@
                 const speed = Math.sqrt(gameState.ballVX ** 2 + gameState.ballVY ** 2);
                 speedIndicator = speed;
                 
-                // خطوط السرعة عند السرعة العالية
-                if (speed > 8) {
-                    for (let i = 0; i < 3; i++) {
-                        speedLines.push({
-                            x: gameState.ballX + (Math.random() - 0.5) * 20,
-                            y: gameState.ballY + (Math.random() - 0.5) * 20,
-                            vx: -gameState.ballVX * 0.3,
-                            vy: -gameState.ballVY * 0.3,
-                            life: 1
-                        });
-                    }
+                // خطوط السرعة عند السرعة العالية - معطلة على الموبايل
+                if (!isMobile && speed > 8) {
+                    speedLines.push({
+                        x: gameState.ballX,
+                        y: gameState.ballY,
+                        vx: -gameState.ballVX * 0.3,
+                        vy: -gameState.ballVY * 0.3,
+                        life: 1
+                    });
                 }
                 
                 ballTrail.push({x: gameState.ballX, y: gameState.ballY});
-                if (ballTrail.length > 15) ballTrail.shift();
+                const maxTrail = isMobile ? 5 : 15;
+                if (ballTrail.length > maxTrail) ballTrail.shift();
+            }
+            
+            // تحديد عدد الجزيئات الأقصى
+            const maxParticles = isMobile ? 30 : 100;
+            if (particles.length > maxParticles) {
+                particles = particles.slice(-maxParticles);
             }
 
             // Scoring - الأهداف على اليمين واليسار
@@ -1014,8 +1058,11 @@
         }
 
         function createParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                const angle = (Math.PI * 2 * i) / count;
+            const isMobile = window.innerWidth <= 768;
+            const particleCount = isMobile ? Math.floor(count / 3) : count; // تقليل للموبايل
+            
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (Math.PI * 2 * i) / particleCount;
                 const speed = Math.random() * 8 + 3;
                 particles.push({
                     x: x,
@@ -1046,9 +1093,8 @@
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            const isMobile = window.innerWidth <= 768;
-
             // رسم الحواف الملونة - تحديد فتحات الأهداف
+            const isMobile = window.innerWidth <= 768;
             const borderGlow = isMobile ? 15 : 25;
             const pulseEffect = Math.sin(Date.now() / 500) * 5;
             const goalWidth = 150; // عرض فتحة الهدف
@@ -1176,16 +1222,17 @@
             });
 
             // Paddle 1 (أخضر نيون)
-            const paddleGlow = isMobile ? 25 : 35;
-            const pulsePaddle = Math.sin(Date.now() / 200) * 5 + paddleGlow;
+            const paddleGlow = isMobile ? 15 : 35;
+            const pulsePaddle = isMobile ? paddleGlow : (Math.sin(Date.now() / 200) * 5 + paddleGlow);
             ctx.shadowBlur = pulsePaddle;
             ctx.shadowColor = '#00ff00';
             
             // حلقة خارجية متحركة
             ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = isMobile ? 3 : 4;
             ctx.beginPath();
-            ctx.arc(gameState.p1X, gameState.p1Y, PADDLE_RADIUS + 3 + Math.sin(Date.now() / 300), 0, Math.PI * 2);
+            const p1Radius = isMobile ? PADDLE_RADIUS + 3 : PADDLE_RADIUS + 3 + Math.sin(Date.now() / 300);
+            ctx.arc(gameState.p1X, gameState.p1Y, p1Radius, 0, Math.PI * 2);
             ctx.stroke();
             
             // دائرة داخلية بيضاء
@@ -1213,9 +1260,10 @@
             
             // حلقة خارجية متحركة
             ctx.strokeStyle = '#ff0000';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = isMobile ? 3 : 4;
             ctx.beginPath();
-            ctx.arc(gameState.p2X, gameState.p2Y, PADDLE_RADIUS + 3 + Math.sin(Date.now() / 300 + Math.PI), 0, Math.PI * 2);
+            const p2Radius = isMobile ? PADDLE_RADIUS + 3 : PADDLE_RADIUS + 3 + Math.sin(Date.now() / 300 + Math.PI);
+            ctx.arc(gameState.p2X, gameState.p2Y, p2Radius, 0, Math.PI * 2);
             ctx.stroke();
             
             // دائرة داخلية بيضاء
@@ -1239,16 +1287,17 @@
 
             // الكرة (ذهبي نيون)
             const ballSpeed = Math.sqrt(gameState.ballVX ** 2 + gameState.ballVY ** 2);
-            const ballGlow = isMobile ? 25 : 35;
-            const dynamicGlow = ballGlow + (ballSpeed * 2);
+            const ballGlow = isMobile ? 15 : 35;
+            const dynamicGlow = isMobile ? ballGlow : (ballGlow + (ballSpeed * 2));
             ctx.shadowBlur = dynamicGlow;
             ctx.shadowColor = '#ffff00';
             
             // حلقة خارجية نابضة
             ctx.strokeStyle = '#ffff00';
-            ctx.lineWidth = 3 + Math.sin(Date.now() / 100) * 1;
+            ctx.lineWidth = isMobile ? 2 : (3 + Math.sin(Date.now() / 100) * 1);
             ctx.beginPath();
-            ctx.arc(gameState.ballX, gameState.ballY, BALL_SIZE + 2 + Math.sin(Date.now() / 150), 0, Math.PI * 2);
+            const ballRadius = isMobile ? BALL_SIZE + 2 : BALL_SIZE + 2 + Math.sin(Date.now() / 150);
+            ctx.arc(gameState.ballX, gameState.ballY, ballRadius, 0, Math.PI * 2);
             ctx.stroke();
             
             // دائرة بيضاء مع تدرج
@@ -1265,35 +1314,42 @@
 
             // رسم الجزيئات
             particles.forEach((p, index) => {
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.rotation);
-                
-                // توهج الجزيئة
-                ctx.shadowBlur = 15 * p.life;
-                ctx.shadowColor = p.color;
-                
-                // رسم مربع دوار بدل دائرة لبعض الجزيئات
-                if (index % 3 === 0) {
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-                } else {
+                if (isMobile) {
+                    // رسم مبسط للموبايل - بدون shadow أو rotation
                     ctx.fillStyle = p.color;
                     ctx.beginPath();
-                    ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                     ctx.fill();
+                } else {
+                    // رسم كامل للديسكتوب
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation);
+                    
+                    ctx.shadowBlur = 15 * p.life;
+                    ctx.shadowColor = p.color;
+                    
+                    if (index % 3 === 0) {
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    } else {
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    ctx.restore();
                 }
-                
-                ctx.restore();
                 
                 // تحديث الجزيئات
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vx *= 0.98; // مقاومة الهواء
+                p.vx *= 0.98;
                 p.vy *= 0.98;
                 p.life -= 0.02;
                 p.size *= 0.96;
-                p.rotation += p.rotationSpeed;
+                if (!isMobile) p.rotation += p.rotationSpeed;
                 
                 if (p.life <= 0) particles.splice(index, 1);
             });
@@ -1348,8 +1404,8 @@
                 speedIndicator *= 0.95;
             }
 
-            // عرض الكومبو
-            if (comboDisplay.alpha > 0) {
+            // عرض الكومبو - معطل على الموبايل
+            if (!isMobile && comboDisplay.alpha > 0) {
                 ctx.shadowBlur = 20;
                 ctx.shadowColor = '#ffff00';
                 ctx.fillStyle = `rgba(255, 255, 0, ${comboDisplay.alpha})`;
@@ -1365,6 +1421,9 @@
                     ctx.fillText('★', x, y);
                 }
                 
+                comboDisplay.alpha -= 0.02;
+            }
+            if (isMobile && comboDisplay.alpha > 0) {
                 comboDisplay.alpha -= 0.02;
             }
 
@@ -1468,6 +1527,7 @@
                 score2: 0,
                 timeLeft: GAME_TIME,
                 status: 'ready',
+                creator: me.id,
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             }).then(() => {
                 console.log("✅ Game initialized successfully");
