@@ -520,7 +520,8 @@
             
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                if (gameState.status !== 'playing') return;
+                console.log('📱 Touch Start detected!');
+                // السماح بالتحرك في أي وقت (حتى في waiting)
                 
                 const rect = canvas.getBoundingClientRect();
                 const touch = e.touches[0];
@@ -528,12 +529,13 @@
                 const scaleY = CANVAS_HEIGHT / rect.height;
                 const touchX = (touch.clientX - rect.left) * scaleX;
                 const touchY = (touch.clientY - rect.top) * scaleY;
+                console.log('Touch position:', touchX, touchY, 'Scale:', scaleX, scaleY);
                 updateMyPaddle(touchX, touchY);
             }, { passive: false });
 
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                if (gameState.status !== 'playing') return;
+                // السماح بالتحرك في أي وقت
                 
                 const now = Date.now();
                 if (now - lastTouchTime < TOUCH_THROTTLE) return;
@@ -578,6 +580,7 @@
         }
 
         function updateMyPaddle(x, y) {
+            console.log('updateMyPaddle called:', x, y, 'isHost:', isHost);
             // حدود الملعب - كل لاعب يتحرك في كامل نصفه
             y = Math.max(PADDLE_RADIUS, Math.min(CANVAS_HEIGHT - PADDLE_RADIUS, y));
             
@@ -587,11 +590,13 @@
                 x = Math.max(PADDLE_RADIUS, Math.min(CANVAS_WIDTH / 2, x));
                 gameState.p1X = x;
                 gameState.p1Y = y;
+                console.log('Updated P1:', x, y);
             } else {
                 // P2 (Guest) - في النصف الأيمن فقط - من المنتصف للحافة
                 x = Math.max(CANVAS_WIDTH / 2, Math.min(CANVAS_WIDTH - PADDLE_RADIUS, x));
                 gameState.p2X = x;
                 gameState.p2Y = y;
+                console.log('Updated P2:', x, y);
             }
 
             const updates = {};
@@ -1107,8 +1112,8 @@
         }
 
         function draw() {
-            // Screen shake effect
-            if (screenShake > 0) {
+            // Screen shake effect - تعطيل على الموبايل
+            if (!isMobile && screenShake > 0) {
                 ctx.save();
                 ctx.translate(
                     (Math.random() - 0.5) * screenShake,
@@ -1122,9 +1127,8 @@
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             // رسم الحواف الملونة - تحديد فتحات الأهداف
-            const isMobile = window.innerWidth <= 768;
-            const borderGlow = isMobile ? 15 : 25;
-            const pulseEffect = Math.sin(Date.now() / 500) * 5;
+            const borderGlow = isMobile ? 5 : 25; // تقليل التوهج
+            const pulseEffect = isMobile ? 0 : Math.sin(Date.now() / 500) * 5; // تعطيل النبض
             const goalWidth = 150; // عرض فتحة الهدف
             const goalStart = (CANVAS_HEIGHT - goalWidth) / 2;
             const goalEnd = goalStart + goalWidth;
@@ -1132,7 +1136,7 @@
             ctx.shadowBlur = borderGlow + pulseEffect;
             ctx.shadowColor = '#00ff00';
             ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = isMobile ? 6 : 10;
+            ctx.lineWidth = isMobile ? 4 : 10;
             
             // الحد العلوي - كامل (مغلق)
             ctx.beginPath();
@@ -1141,7 +1145,7 @@
             ctx.stroke();
 
             // حافة يسار (أزرق) مع نبض وفتحة الهدف
-            ctx.shadowBlur = borderGlow + Math.sin(Date.now() / 500 + Math.PI / 2) * 5;
+            ctx.shadowBlur = isMobile ? 5 : (borderGlow + Math.sin(Date.now() / 500 + Math.PI / 2) * 5);
             ctx.shadowColor = '#0080ff';
             ctx.strokeStyle = '#0080ff';
             
@@ -1158,7 +1162,7 @@
             ctx.stroke();
 
             // حافة أسفل (أحمر) مع نبض - كامل (مغلق)
-            ctx.shadowBlur = borderGlow + Math.sin(Date.now() / 500 + Math.PI) * 5;
+            ctx.shadowBlur = isMobile ? 5 : (borderGlow + Math.sin(Date.now() / 500 + Math.PI) * 5);
             ctx.shadowColor = '#ff0000';
             ctx.strokeStyle = '#ff0000';
             ctx.beginPath();
@@ -1167,7 +1171,7 @@
             ctx.stroke();
 
             // حافة يمين (أصفر) مع نبض وفتحة الهدف
-            ctx.shadowBlur = borderGlow + Math.sin(Date.now() / 500 + Math.PI * 1.5) * 5;
+            ctx.shadowBlur = isMobile ? 5 : (borderGlow + Math.sin(Date.now() / 500 + Math.PI * 1.5) * 5);
             ctx.shadowColor = '#ffff00';
             ctx.strokeStyle = '#ffff00';
             
