@@ -297,11 +297,28 @@
 const MAX_ROUNDS = 5;
 
 let me = JSON.parse(localStorage.getItem("user"));
-if (!me) location.href = "login.html";
 
 let params = new URLSearchParams(location.search);
+let isAIMode = params.get("ai") === "true";
 let opponentId = String(params.get("op"));
 let gameId = params.get("game");
+
+// في وضع AI لا نحتاج user
+if (!isAIMode && !me) {
+    location.href = "login.html";
+}
+
+// إنشاء بيانات وهمية في وضع AI
+if (isAIMode) {
+    if (!me) {
+        me = {
+            id: "player_" + Date.now(),
+            username: "أنت",
+            games: []
+        };
+    }
+    opponentId = "ai_bot";
+}
 
 let opponent;
 let myGame;
@@ -314,14 +331,37 @@ let isProcessingRoundEnd = false; // ✅ لمنع تكرار تنفيذ نهاي
 // =========================================
 // 🔥 جلب بيانات الخصم من Firebase
 // =========================================
-getUser(opponentId).then(res => {
-    opponent = res;
+if (isAIMode) {
+    // إنشاء خصم AI وهمي
+    opponent = {
+        id: "ai_bot",
+        username: "الكمبيوتر 🤖",
+        avatar: "🤖"
+    };
     $("#opponentName").text(opponent.username);
     $("#opFinalName").text(opponent.username);
-}).catch(err => {
-    console.error("خطأ في جلب بيانات الخصم:", err);
-    $("#status").html("❌ خطأ في جلب بيانات الخصم!");
-});
+    
+    // إنشاء لعبة وهمية في وضع AI
+    myGame = {
+        id: "ai_game_" + Date.now(),
+        status: "playing",
+        round: 1,
+        myScore: 0,
+        opponentScore: 0,
+        questions: []
+    };
+    
+    initGameListeners();
+} else {
+    getUser(opponentId).then(res => {
+        opponent = res;
+        $("#opponentName").text(opponent.username);
+        $("#opFinalName").text(opponent.username);
+    }).catch(err => {
+        console.error("خطأ في جلب بيانات الخصم:", err);
+        $("#status").html("❌ خطأ في جلب بيانات الخصم!");
+    });
+}
 
 // =========================================
 // 🎮 توليد سؤال جديد
@@ -342,6 +382,12 @@ function generateQuestion() {
 // 🔥 تحميل بيانات اللعبة من Firebase (Real-time)
 // =========================================
 function initGameListeners() {
+    if (isAIMode) {
+        // في وضع AI نبدأ اللعبة مباشرة
+        checkGameState();
+        return;
+    }
+    
     // 1. الاستماع لبياناتي
     firebase.database().ref('users/' + me.id).on('value', snapshot => {
         me = snapshot.val();
@@ -373,6 +419,11 @@ function checkGameState() {
     $("#myScore").text(myGame.myScore || 0);
     $("#myName").text(me.username);
     $("#myFinalName").text(me.username);
+    
+    // تحديث نقاط الخصم
+    if (isAIMode) {
+        $("#opScore").text(myGame.opponentScore || 0);
+    }
 
     // بدء اللعبة إذا كانت دعوة
     if (myGame.status === "invited") {
@@ -380,7 +431,7 @@ function checkGameState() {
         myGame.round = 1;
         myGame.myScore = 0;
         myGame.opponentScore = 0;
-        saveGame();
+        if (!isAIMode) saveGame();
     }
 
     if (myGame.status === "finished") {
@@ -397,6 +448,91 @@ function checkGameState() {
 // =========================================
 function renderQuestion() {
     if (!myGame || !opponent) return;
+    
+    // في وضع AI
+    if (isAIMode) {
+        // توليد سؤال جديد إذا لم يكن موجود
+        if (!myGame.question) {
+            let q = generateQuestion();
+            myGame.question = q.question;
+            myGame.answer = q.answer;
+            myGame.myAnswer = null;
+            myGame.opponentAnswer = null;
+            
+            // عرض حالة "يفكر..."
+            $("#opStatus").html("🤔 يفكر...");
+            
+            // AI يجاوب بشكل واقعي (1-6 ثواني)
+            let aiDelay = Math.random() * 5000 + 1000; // بين 1-6 ثواني
+            
+            // بعد نصف الوقت يعرض "يكتب..."
+            setTimeout(() => {
+                if (myGame.opponentAnswer == null && myGame.question && myGame.status !== "finished") {
+                    $("#opStatus").html("✍️ يكتب...");
+                }
+            }, aiDelay / 2);
+            
+            setTimeout(() => {
+                if (myGame.opponentAnswer == null && myGame.question && myGame.status !== "finished") {
+                    // AI يجاوب صح أو غلط بشكل واقعي
+                    let correctAnswer = myGame.answer;
+                    let difficulty = Math.random();
+                    
+                    if (difficulty < 0.6) {
+                        // 60% يجاوب صح
+                        myGame.opponentAnswer = correctAnswer;
+                        myGame.opponentAnswerTime = Date.now() - Math.random() * 1000; // وقت واقعي
+                    } else if (difficulty < 0.85) {
+                        // 25% يجاوب غلط (خطأ بسيط)
+                        let wrongAnswer = correctAnswer + (Math.random() > 0.5 ? 1 : -1);
+                        myGame.opponentAnswer = wrongAnswer;
+                        myGame.opponentAnswerTime = Date.now() - Math.random() * 500;
+                    } else {
+                        // 15% ما يجاوب (انتهى الوقت)
+                        myGame.opponentAnswer = -999;
+                        myGame.opponentAnswerTime = Date.now() + 999999;
+                    }
+                    
+                    if (myGame.opponentAnswer !== -999) {
+                        $("#opStatus").html("✅ أجاب");
+                    } else {
+                        $("#opStatus").html("⏰ انتهى الوقت!");
+                    }
+                    
+                    // فحص نهاية الجولة
+                    if (myGame.myAnswer != null) {
+                        checkRoundEnd();
+                    }
+                }
+            }, aiDelay);
+        }
+        
+        $("#questionBox").text(myGame.question);
+        
+        // تشغيل المؤقت
+        if (myGame.question && myGame.question !== lastQuestion) {
+            lastQuestion = myGame.question;
+            if (myGame.myAnswer == null) {
+                startTimer();
+            }
+        }
+        
+        if (myGame.myAnswer != null) {
+            $("#myStatus").html("✅ أجبت");
+            $("#submitBtn").prop("disabled", true);
+            clearInterval(timerInterval);
+            
+            // فحص إذا AI جاوب قبلي
+            if (myGame.opponentAnswer != null) {
+                checkRoundEnd();
+            }
+        } else {
+            $("#myStatus").html("⏳ جاري الإجابة...");
+            $("#submitBtn").prop("disabled", false);
+        }
+        
+        return;
+    }
     
     let hisGame = opponent.games?.find(g => g.id === gameId);
     
@@ -511,7 +647,11 @@ function handleTimeout() {
     myGame.myAnswer = -999; 
     myGame.myAnswerTime = Date.now() + 999999; // عقوبة وقت
     
-    saveGame();
+    if (!isAIMode) {
+        saveGame();
+    } else {
+        checkRoundEnd();
+    }
 }
 
 // =========================================
@@ -539,7 +679,12 @@ function sendAnswer() {
     $("#submitBtn").prop("disabled", true);
     $("#myStatus").html("✅ أجبت");
     
-    saveGame();
+    if (!isAIMode) {
+        saveGame();
+    } else {
+        // في وضع AI نفحص نهاية الجولة مباشرة
+        checkRoundEnd();
+    }
 }
 
 // =========================================
@@ -598,6 +743,11 @@ function saveGame() {
 // =========================================
 function checkWinner() {
     if (!opponent) return;
+    
+    if (isAIMode) {
+        checkRoundEnd();
+        return;
+    }
     
     let hisGame = opponent.games?.find(g => g.id === gameId);
     if (!hisGame) return;
@@ -686,7 +836,7 @@ function checkWinner() {
     if (currentRound >= MAX_ROUNDS) {
         setTimeout(() => {
             myGame.status = "finished";
-            saveGame();
+            if (!isAIMode) saveGame();
             showGameOver();
             isProcessingRoundEnd = false;
         }, 3000);
@@ -712,10 +862,122 @@ function checkWinner() {
             $("#opponentStatus").html("بانتظار...");
             $("#timer").text("7"); // إعادة تعيين المؤقت بصرياً
             
-            saveGame();
+            if (!isAIMode) saveGame();
             isProcessingRoundEnd = false;
             
+            if (isAIMode) {
+                renderQuestion();
+            }
             // لا حاجة لاستدعاء loadGameData هنا لأن المستمع سيقوم بالتحديث
+        }, 3000);
+    }
+}
+
+// =========================================
+// 🤖 فحص نهاية الجولة في وضع AI
+// =========================================
+function checkRoundEnd() {
+    if (!isAIMode) return;
+    
+    let myAns = myGame.myAnswer;
+    let opAns = myGame.opponentAnswer;
+    
+    $("#opScore").text(myGame.opponentScore || 0);
+    
+    if (myAns == null || opAns == null) return;
+    
+    if (isProcessingRoundEnd) return;
+    isProcessingRoundEnd = true;
+    
+    let correctAnswer = myGame.answer;
+    let myCorrect = (myAns == correctAnswer);
+    let opCorrect = (opAns == correctAnswer);
+    
+    // التحقق من انتهاء الوقت
+    let myTimeout = (myAns == -999);
+    let opTimeout = (opAns == -999);
+    
+    let winnerBox = $("#winnerBox");
+    
+    // حساب النقاط
+    if (myCorrect && opCorrect) {
+        let myTime = myGame.myAnswerTime || 0;
+        let opTime = myGame.opponentAnswerTime || 0;
+        
+        if (myTime < opTime) {
+            myGame.myScore = (myGame.myScore || 0) + 2;
+            winnerBox.html("🏆 أنت الفائز! (إجابة صحيحة + أسرع) ⚡").removeClass().addClass("winner win");
+        } else if (opTime < myTime) {
+            myGame.myScore = (myGame.myScore || 0) + 1;
+            myGame.opponentScore = (myGame.opponentScore || 0) + 2;
+            winnerBox.html("🟡 إجابة صحيحة! لكن الخصم كان أسرع ⚡").removeClass().addClass("winner draw");
+        } else {
+            myGame.myScore = (myGame.myScore || 0) + 1;
+            myGame.opponentScore = (myGame.opponentScore || 0) + 1;
+            winnerBox.html("🤝 تعادل! كلاكما أجاب بنفس السرعة").removeClass().addClass("winner draw");
+        }
+    }
+    else if (myCorrect && !opCorrect) {
+        myGame.myScore = (myGame.myScore || 0) + 1;
+        if (opTimeout) {
+            winnerBox.html("🏆 أنت الفائز! الخصم انتهى وقته ⏰").removeClass().addClass("winner win");
+        } else {
+            winnerBox.html("🏆 أنت الفائز بهذه الجولة! إجابتك صحيحة ✅").removeClass().addClass("winner win");
+        }
+    }
+    else if (opCorrect && !myCorrect) {
+        myGame.opponentScore = (myGame.opponentScore || 0) + 1;
+        if (myTimeout) {
+            winnerBox.html("❌ انتهى وقتك! الإجابة الصحيحة: " + correctAnswer).removeClass().addClass("winner lose");
+        } else {
+            winnerBox.html("❌ خسرت هذه الجولة! الإجابة الصحيحة: " + correctAnswer).removeClass().addClass("winner lose");
+        }
+    }
+    else {
+        // كلاهما غلط أو انتهى وقتهم
+        if (myTimeout && opTimeout) {
+            winnerBox.html("⏰ انتهى الوقت للطرفين! الإجابة: " + correctAnswer).removeClass().addClass("winner draw");
+        } else if (myTimeout) {
+            winnerBox.html("⏰ انتهى وقتك! الخصم أيضاً أخطأ. الإجابة: " + correctAnswer).removeClass().addClass("winner draw");
+        } else if (opTimeout) {
+            winnerBox.html("🤷‍♂️ أنت أخطأت والخصم انتهى وقته. الإجابة: " + correctAnswer).removeClass().addClass("winner draw");
+        } else {
+            winnerBox.html("🤷‍♂️ كلاكما أجاب بشكل خاطئ! الإجابة الصحيحة: " + correctAnswer).removeClass().addClass("winner draw");
+        }
+    }
+    
+    $("#myScore").text(myGame.myScore || 0);
+    $("#opScore").text(myGame.opponentScore || 0);
+    
+    currentRound = myGame.round || 1; // تحديث الجولة الحالية
+    
+    if (currentRound >= MAX_ROUNDS) {
+        setTimeout(() => {
+            myGame.status = "finished";
+            showGameOver();
+            isProcessingRoundEnd = false;
+        }, 3000);
+    } else {
+        setTimeout(() => {
+            myGame.question = null;
+            myGame.answer = null;
+            myGame.round = (myGame.round || 1) + 1;
+            currentRound = myGame.round; // تحديث الجولة
+            myGame.myAnswer = null;
+            myGame.myAnswerTime = null;
+            myGame.opponentAnswer = null;
+            myGame.opponentAnswerTime = null;
+            
+            $("#answer").val("").prop("disabled", false);
+            $("#submitBtn").prop("disabled", false);
+            $("#winnerBox").html("");
+            $("#myStatus").html("جاهز");
+            $("#opStatus").html("⏳ ينتظر السؤال...");
+            $("#timer").text("7");
+            $("#roundIndicator").text(`الجولة ${currentRound} / ${MAX_ROUNDS}`);
+            
+            isProcessingRoundEnd = false;
+            renderQuestion();
         }, 3000);
     }
 }
@@ -740,10 +1002,15 @@ function endGame() {
 function showGameOver() {
     if (!opponent) return;
     
-    let hisGame = opponent.games?.find(g => g.id === gameId);
-    
     let myScore = myGame.myScore || 0;
-    let opScore = hisGame?.myScore || 0;
+    let opScore = 0;
+    
+    if (isAIMode) {
+        opScore = myGame.opponentScore || 0;
+    } else {
+        let hisGame = opponent.games?.find(g => g.id === gameId);
+        opScore = hisGame?.myScore || 0;
+    }
 
     $("#gameArea").hide();
     $("#endGameBtn").hide();

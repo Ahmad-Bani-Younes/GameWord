@@ -263,8 +263,8 @@
                 </div>
             </div>
             
-            <div class="controls-hint">
-                استخدم الماوس للتحكم بالمضرب أو الأسهم (↑↓←→) / (WASD)
+            <div class="controls-hint" id="controlsHint">
+                <span id="controlsText">المس الشاشة وحرك إصبعك للتحكم بالمضرب</span>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button class="btn btn-secondary" onclick="quitGame()" style="pointer-events: auto; padding: 8px 15px; font-size: 13px;">
                         <i class="fas fa-sign-out-alt"></i> الخروج
@@ -315,10 +315,11 @@
 
     <script>
         // Game Constants
-        const CANVAS_WIDTH = 800;
-        const CANVAS_HEIGHT = 500;
-        const PADDLE_RADIUS = 25;
-        const BALL_SIZE = 10;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const CANVAS_WIDTH = isMobile ? 600 : 800;
+        const CANVAS_HEIGHT = isMobile ? 400 : 500;
+        const PADDLE_RADIUS = isMobile ? 20 : 25;
+        const BALL_SIZE = isMobile ? 8 : 10;
         const WIN_SCORE = 7;
         const GAME_TIME = 60; // 60 seconds
         
@@ -338,6 +339,8 @@
         let ballTrail = [];
         let screenShake = 0;
         let goalEffect = null;
+        const MAX_PARTICLES = isMobile ? 20 : 50;
+        const MAX_TRAIL = isMobile ? 5 : 10;
         let comboHits = 0;
         let lastHitTime = 0;
         let speedIndicator = 0;
@@ -404,6 +407,13 @@
                 alpha: false,
                 desynchronized: true
             });
+            
+            // تحديث نص التحكم حسب الجهاز
+            if (isMobile) {
+                document.getElementById('controlsText').textContent = '📱 المس الشاشة وحرك إصبعك للتحكم بالمضرب';
+            } else {
+                document.getElementById('controlsText').textContent = '🖱️ استخدم الماوس أو الأسهم (↑↓←→) / (WASD)';
+            }
             
             // Responsive Canvas
             resizeCanvas();
@@ -488,6 +498,8 @@
 
             canvas.style.width = width + 'px';
             canvas.style.height = height + 'px';
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
         }
 
         function setupControls() {
@@ -502,14 +514,30 @@
                 updateMyPaddle(mouseX, mouseY);
             });
 
-            // Touch Movement - محسّن للموبايل
+            // Touch Movement - محسّن للموبايل مع Throttle
+            let lastTouchTime = 0;
+            const TOUCH_THROTTLE = isMobile ? 16 : 0; // 60fps على الموبايل
+            
             canvas.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                if (gameState.status !== 'playing') return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const scaleX = CANVAS_WIDTH / rect.width;
+                const scaleY = CANVAS_HEIGHT / rect.height;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                const touchY = (touch.clientY - rect.top) * scaleY;
+                updateMyPaddle(touchX, touchY);
             }, { passive: false });
 
             canvas.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 if (gameState.status !== 'playing') return;
+                
+                const now = Date.now();
+                if (now - lastTouchTime < TOUCH_THROTTLE) return;
+                lastTouchTime = now;
                 
                 const rect = canvas.getBoundingClientRect();
                 const touch = e.touches[0];
