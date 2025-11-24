@@ -1,6 +1,6 @@
 // Game Constants
-const CANVAS_WIDTH = 800;
-const CANVAS_HEIGHT = 600;
+let CANVAS_WIDTH = 800;
+let CANVAS_HEIGHT = 600;
 const PLAYER_SIZE = 30;
 let PLAYER_SPEED = 5;
 const GENERATOR_RADIUS = 40;
@@ -18,6 +18,12 @@ const TEAMS_CONFIG = [
 
 // Mobile Detection
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// FPS Counter
+let fps = 60;
+let lastFrameTime = Date.now();
+let frameCount = 0;
+let fpsUpdateTime = Date.now();
 
 // Sound System (auto-disabled on mobile for performance)
 let soundEnabled = !isMobileDevice;
@@ -84,6 +90,14 @@ let gameRef, myRef;
 
 // Initialization
 window.onload = function() {
+    // Hide loading screen after a delay
+    setTimeout(() => {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden');
+        }
+    }, 1500);
+    
     const urlParams = new URLSearchParams(window.location.search);
     gameId = urlParams.get('game');
     const opponentId = urlParams.get('op');
@@ -359,7 +373,25 @@ function setupMobileControls() {
 function gameLoop() {
     update();
     draw();
+    updateFPS();
     requestAnimationFrame(gameLoop);
+}
+
+function updateFPS() {
+    frameCount++;
+    const now = Date.now();
+    
+    if (now - fpsUpdateTime >= 1000) {
+        fps = frameCount;
+        frameCount = 0;
+        fpsUpdateTime = now;
+        
+        const fpsElement = document.getElementById('fps-counter');
+        if (fpsElement) {
+            fpsElement.textContent = `FPS: ${fps}`;
+            fpsElement.style.color = fps >= 50 ? '#2ecc71' : fps >= 30 ? '#f39c12' : '#e74c3c';
+        }
+    }
 }
 
 function update() {
@@ -815,16 +847,20 @@ function startEventListeners() {
     gameRef.child('events').on('child_added', snapshot => {
         const event = snapshot.val();
         if (event.type === 'attack' && event.target === myId) {
-            takeDamage(event.damage);
+            takeDamage(event.damage, event.from);
             snapshot.ref.remove();
         }
     });
 }
 
-function takeDamage(amount) {
+function takeDamage(amount, attackerId) {
     me.health -= amount;
     updateUI();
+    
     if (me.health <= 0) {
+        // Show kill feed
+        const attackerName = attackerId ? (opponents[attackerId]?.team || 'خصم') : 'خصم';
+        showKillFeed(attackerName, me.team || 'أنت');
         respawn();
     }
 }
@@ -1327,14 +1363,61 @@ function shakeScreen() {
     }, 100);
 }
 
+// === Kill Feed System ===
+function showKillFeed(killer, victim) {
+    const killFeed = document.getElementById('kill-feed');
+    if (!killFeed) return;
+    
+    const notification = document.createElement('div');
+    notification.className = 'kill-notification';
+    notification.innerHTML = `<strong>${killer}</strong> ☠️ ${victim}`;
+    
+    killFeed.insertBefore(notification, killFeed.firstChild);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+    
+    // Keep max 5 notifications
+    while (killFeed.children.length > 5) {
+        killFeed.removeChild(killFeed.lastChild);
+    }
+}
+
+// === Notification System ===
+function showNotification(message, color = '#3498db') {
+    const notification = document.getElementById('powerup-notification');
+    if (!notification) return;
+    
+    notification.textContent = message;
+    notification.style.background = color;
+    notification.style.opacity = '1';
+    notification.style.animation = 'slideDown 0.5s ease-out';
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+    }, 3000);
+}
+
 console.log('🎮 Professional features loaded: Particles, Combos, PowerUps, Realistic Physics!');
 console.log('📱 Mobile Optimizations:');
-console.log('  - Reduced canvas resolution on mobile (600x450)');
-console.log('  - Disabled heavy effects (shadows, glow, grid)');
-console.log('  - Minimal weather particles');
-console.log('  - No footstep trails on mobile');
-console.log('  - Simplified graphics & animations');
-console.log('  - Reduced network updates (150ms vs 100ms)');
-console.log('  - Resource generation every 1.5s on mobile');
+console.log('  ✅ Reduced canvas resolution on mobile (600x450)');
+console.log('  ✅ Disabled heavy effects (shadows, glow, grid)');
+console.log('  ✅ Minimal weather particles');
+console.log('  ✅ No footstep trails on mobile');
+console.log('  ✅ Simplified graphics & animations');
+console.log('  ✅ Reduced network updates (150ms vs 100ms)');
+console.log('  ✅ Resource generation every 1.5s on mobile');
 console.log('⚡ Performance: OPTIMIZED for smooth mobile gameplay!');
+console.log('🎨 New Professional Features:');
+console.log('  ✨ Loading screen with animations');
+console.log('  ✨ FPS counter (desktop only)');
+console.log('  ✨ Kill feed notifications');
+console.log('  ✨ Enhanced UI with modern gradients');
+console.log('  ✨ Responsive design for all screen sizes');
+console.log('  ✨ PWA-ready with meta tags');
+console.log('🚀 Game is ready! Enjoy!');
 
